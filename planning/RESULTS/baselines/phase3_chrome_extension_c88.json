@@ -1,0 +1,212 @@
+{
+  "mode": "extension",
+  "ok": true,
+  "wall_clock_s": 5.3,
+  "result": {
+    "context": {
+      "strategy": "stub",
+      "model_name": "Stub_Model",
+      "faces_in": 82
+    },
+    "payload": {
+      "pyodide": "0.24.1",
+      "wheels": [
+        "honeybee_core-1.64.65-py3-none-any.whl",
+        "honeybee_energy-1.123.23-py3-none-any.whl",
+        "honeybee_ph-1.33.48-py3-none-any.whl",
+        "honeybee_standards-2.0.7-py2.py3-none-any.whl",
+        "ladybug_core-0.44.56-py3-none-any.whl",
+        "ladybug_geometry-1.35.3-py3-none-any.whl",
+        "ladybug_geometry_polyskel-1.7.52-py3-none-any.whl",
+        "ph_units-1.5.38-py3-none-any.whl"
+      ]
+    },
+    "boot": {
+      "step2": {
+        "ok": true,
+        "failed": {},
+        "import_ms": {
+          "ladybug_geometry.geometry3d.pointvector": 148.8,
+          "ladybug.location": 153.3,
+          "honeybee.room": 828.4,
+          "honeybee.model": 0,
+          "honeybee_energy.lib.constructionsets": 0,
+          "honeybee_ph.space": 0,
+          "honeybee_ph": 0
+        },
+        "import_total_ms": 1130.5,
+        "versions": {
+          "honeybee-core": "1.64.65",
+          "honeybee-energy": "1.123.23",
+          "honeybee-ph": "1.33.48",
+          "honeybee-standards": "2.0.7",
+          "ladybug-core": "0.44.56",
+          "ladybug-geometry": "1.35.3",
+          "ladybug-geometry-polyskel": "1.7.52",
+          "ph-units": "1.5.38"
+        },
+        "runtime": {
+          "python_version": "3.11.3",
+          "platform": "Emscripten-3.1.45-wasm32-32bit",
+          "is_pyodide": true
+        }
+      },
+      "step3": {
+        "ok": true,
+        "hbjson_bytes": 29690,
+        "counts": {
+          "rooms": 1,
+          "faces": 6,
+          "floor_area_m2": 54,
+          "volume_m3": 162
+        },
+        "round_trip": {
+          "ok": true,
+          "rooms": 1,
+          "faces": 6,
+          "apertures": 0,
+          "spaces": 1
+        },
+        "build_ms": {
+          "Room.from_box": 0.9,
+          "Space.from_room": 1.3,
+          "Model()": 0,
+          "to_dict": 3.9,
+          "json.dumps": 2.7,
+          "from_dict": 6.2
+        },
+        "build_total_ms": 15,
+        "ph_space": {
+          "volumes": 1
+        }
+      },
+      "timings": {
+        "pyodide_ready_ms": 1841,
+        "wheels_fetched_ms": 1864,
+        "wheels_installed_ms": 2086,
+        "spike_imported_ms": 2131,
+        "steps_2_3_ms": 3300
+      },
+      "fetch_strategy": "fetch",
+      "install_strategy": "zipfile",
+      "memory": {
+        "wasm_heap_mb": 28.8,
+        "js_heap_mb": 57.5,
+        "js_heap_limit_mb": 3585.8
+      }
+    },
+    "bridge_up": {
+      "attempts": [
+        {
+          "bytes": 990,
+          "ok": true,
+          "ms": 0,
+          "echo_size": 990
+        },
+        {
+          "bytes": 9990,
+          "ok": true,
+          "ms": 1,
+          "echo_size": 9990
+        },
+        {
+          "bytes": 99990,
+          "ok": true,
+          "ms": 0,
+          "echo_size": 99990
+        },
+        {
+          "bytes": 999990,
+          "ok": true,
+          "ms": 4,
+          "echo_size": 999990
+        },
+        {
+          "bytes": 3999990,
+          "ok": true,
+          "ms": 17,
+          "echo_size": 3999990
+        }
+      ],
+      "max_ok_bytes": 3999990
+    },
+    "step4": {
+      "ok": true,
+      "hbjson_bytes": 70123,
+      "counts": {
+        "rooms": 1,
+        "faces": 82,
+        "floor_area_m2": 0,
+        "volume_m3": 0
+      },
+      "round_trip": {
+        "ok": true,
+        "rooms": 1,
+        "faces": 82,
+        "apertures": 0,
+        "spaces": 0
+      },
+      "build_ms": {
+        "Face3D+Face": 11.9,
+        "Room()": 0,
+        "Space.from_room": 0.2,
+        "Model()": 0.1,
+        "to_dict": 11.6,
+        "json.dumps": 1.9,
+        "from_dict": 244
+      },
+      "build_total_ms": 269.7,
+      "ph_space": {
+        "volumes": 0,
+        "skipped": "ValueError: Honeybee Room 'Spike_designPH_Room' has no Floor faces."
+      },
+      "faces_in": 82,
+      "faces_translated": 82,
+      "rejected": [],
+      "rejected_count": 0,
+      "is_solid": false,
+      "wall_clock_ms": 327,
+      "payload_bytes": 7878,
+      "memory": {
+        "wasm_heap_mb": 28.8,
+        "js_heap_mb": 57.5,
+        "js_heap_limit_mb": 3585.8
+      }
+    },
+    "log": [
+      "[0.01s] scripts loaded \u2014 handing control to Ruby",
+      "[0.03s] loading pyodide from ../vendor/pyodide/",
+      "[1.87s] pyodide ready in 1841 ms",
+      "[1.89s] 8 wheels staged via fetch",
+      "[2.12s] payload installed via zipfile",
+      "[3.33s] boot complete in 3300 ms",
+      "[3.37s] bridge JS\u2192Ruby max ok: 3999990 bytes",
+      "[4.70s] ",
+      "[4.71s] ================ PASSED ================",
+      "[4.71s]   ok    stack imports",
+      "[4.71s]   ok    builds a model",
+      "[4.71s]   ok    bridge round trip",
+      "[4.71s]   ok    real designPH faces",
+      "[4.71s]   82/82 faces translated, 0 rejected",
+      "[4.71s]   70123 bytes of HBJSON"
+    ],
+    "hbjson_sample": "{\"type\": \"Model\", \"identifier\": \"Stub_Model\", \"display_name\": \"Stub_Model\", \"units\": \"Meters\", \"properties\": {\"type\": \"ModelProperties\", \"energy\": {\"type\": \"ModelEnergyProperties\", \"global_construction_set\": {\"type\": \"GlobalConstructionSet\", \"wall_set\": {\"type\": \"WallConstructionSetAbridged\", \"exterior_construction\": \"Generic Exterior Wall\", \"interior_construction\": \"Generic Interior Wall\", \"groun"
+  },
+  "console": [
+    "[0.01s] scripts loaded \u2014 handing control to Ruby",
+    "[0.03s] loading pyodide from ../vendor/pyodide/",
+    "[1.87s] pyodide ready in 1841 ms",
+    "[1.89s] 8 wheels staged via fetch",
+    "[2.12s] payload installed via zipfile",
+    "[3.33s] boot complete in 3300 ms",
+    "[3.37s] bridge JS\u2192Ruby max ok: 3999990 bytes",
+    "[4.70s] ",
+    "[4.71s] ================ PASSED ================",
+    "[4.71s]   ok    stack imports",
+    "[4.71s]   ok    builds a model",
+    "[4.71s]   ok    bridge round trip",
+    "[4.71s]   ok    real designPH faces",
+    "[4.71s]   82/82 faces translated, 0 rejected",
+    "[4.71s]   70123 bytes of HBJSON"
+  ]
+}

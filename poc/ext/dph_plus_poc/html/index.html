@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>DesignPH-PLUS POC</title>
+    <!--
+      ⚠ TARGET IS CHROMIUM 88 (January 2021) -- the CEF that SketchUp 2022 embeds, NOT the
+      browser on your machine. Unavailable here: top-level `await`, class `static {}` blocks,
+      `.at()`, `Object.hasOwn`, `structuredClone`, RegExp match indices, WebAssembly reference
+      types, wasm SIMD. `00_Context/SKETCHUP_RUNTIME.md` §4.1.
+
+      The page is always served over `http://127.0.0.1` by `server.rb`; it can never work over
+      `file://`, where `fetch`, `XMLHttpRequest` *and* dynamic `import()` are all refused and the
+      third cannot be shimmed (hard rule 8).
+    -->
+    <style>
+      body { font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin: 0.75rem; }
+      h1 { font-size: 1rem; margin: 0 0 0.25rem; }
+      .note { color: #666; margin: 0.25rem 0 0.5rem; }
+      #verdict { padding: 0.5rem 0.6rem; border-radius: 4px; margin-bottom: 0.5rem;
+                 background: #eee; color: #333; white-space: pre-wrap; }
+      #verdict.pass { background: #e4f3e4; color: #14501a; }
+      #verdict.fail { background: #f7e0e0; color: #6d1616; }
+      /* A refusal is neither: nothing went wrong, we declined. Amber says "read me" without
+         claiming a fault the user then goes looking for. */
+      #verdict.refused { background: #fdf1dd; color: #6b4708; }
+      #log { white-space: pre-wrap; background: #f4f4f4; padding: 0.5rem; border-radius: 4px;
+             height: 18rem; overflow: auto; }
+      #summary:empty { display: none; }
+      #summary { margin-bottom: 0.5rem; }
+      #summary table { border-collapse: collapse; margin-bottom: 0.4rem; }
+      #summary th, #summary td { padding: 0.1rem 0.6rem 0.1rem 0; text-align: right;
+                                 border-bottom: 1px solid #e2e2e2; }
+      #summary th { text-align: left; font-weight: 600; }
+      #summary td.label, #summary th.label { text-align: left; }
+      #summary td.zero { color: #999; }
+      #summary td.reported { color: #8a5a00; font-weight: 600; }
+      #summary .reasons { margin: 0.2rem 0 0; padding-left: 1rem; color: #6d1616; }
+      #summary .more { color: #666; }
+    </style>
+  </head>
+  <body>
+    <h1>DesignPH-PLUS — proof of concept</h1>
+    <p class="note">Read-only. Nothing here writes to the SketchUp model. Internal build; not for distribution.</p>
+    <div id="verdict">booting…</div>
+    <div id="summary"></div>
+    <div id="log">starting…</div>
+
+    <script src="../vendor/pyodide/pyodide.js"></script>
+    <script src="app.js"></script>
+    <script>
+      (function () {
+        "use strict";
+        DphPlus.attach({
+          logElement: document.getElementById("log"),
+          verdictElement: document.getElementById("verdict"),
+          summaryElement: document.getElementById("summary"),
+          host: typeof sketchup !== "undefined" ? sketchup : null,
+          manifestURL: "../vendor/manifest.json",
+          indexURL: "../vendor/pyodide/",
+          wheelBaseURL: "../vendor/wheels/",
+          translatorURL: "../vendor/dph_translator.zip",
+          bootPyURL: "boot.py"
+        });
+        DphPlus.start();
+      })();
+    </script>
+  </body>
+</html>

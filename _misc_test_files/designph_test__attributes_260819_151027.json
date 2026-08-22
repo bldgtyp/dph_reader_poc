@@ -1,0 +1,168 @@
+{
+  "model": "designph_test",
+  "model_dictionaries": {
+    "GeoReference": {
+      "GeoReferenceNorthAngle": 0.1557307335588798,
+      "Latitude": 40.018309,
+      "LocationSource": "Manual",
+      "Longitude": -105.242139,
+      "ModelTranslationX": -18871519.616960514,
+      "ModelTranslationY": -174402260.58333763,
+      "UsesGeoReferencing": false
+    },
+    "temp": {
+      "temp": 0
+    },
+    "GSU_ContributorsInfo": {
+      "LastModifiedByKey": "1450833408320773203965088",
+      "VersionKey": 1000
+    },
+    "DesignPH_dict": {
+      "designPH_version": "2.2.29",
+      "ihg_ud": {
+        "__marshal__": [
+          1,
+          "10",
+          [
+            "#",
+            "TYPE",
+            "ROW"
+          ],
+          [
+            "#",
+            "ROW_DATA",
+            "ARRAY"
+          ],
+          [
+            "#",
+            "TOKENS",
+            [
+              "num_units",
+              "build_type"
+            ]
+          ]
+        ]
+      },
+      "klima_ID": "DE-9999",
+      "tracker_data": {
+        "__marshal__": [
+          [
+            "#",
+            "TYPE",
+            "TABLE"
+          ],
+          [
+            "#",
+            "ROW_DATA",
+            "ARRAY"
+          ],
+          [
+            "#",
+            "TOKENS",
+            [
+              "AUTO_ID",
+              "desc",
+              "Q_to",
+              "Q_tw",
+              "Q_tb",
+              "Q_v",
+              "Q_s",
+              "Q_i",
+              "Q_n",
+              "Q_h",
+              "climate",
+              "TFA",
+              "windows",
+              "surfaces",
+              "thermal_bridges",
+              "timestamp",
+              "username",
+              "dPH_version"
+            ]
+          ],
+          [
+            0,
+            "",
+            111.32269087239285,
+            0.0,
+            0.0,
+            9.836686519865665,
+            0.0,
+            21.539759999999998,
+            0.0031452961517111078,
+            99.62276268841023,
+            "DE-9999",
+            16.85044150078295,
+            0,
+            6,
+            null,
+            "2026-08-19 15:00:16.41292 -0400",
+            "ed.may",
+            "2.2.29"
+          ]
+        ]
+      },
+      "vent_ud": {
+        "__marshal__": [
+          "97ud",
+          1,
+          2.5,
+          0.0,
+          0.6,
+          0.07,
+          15.0,
+          [
+            "#",
+            "TYPE",
+            "ROW"
+          ],
+          [
+            "#",
+            "ROW_DATA",
+            "ARRAY"
+          ],
+          [
+            "#",
+            "TOKENS",
+            [
+              "vent_sys_ID",
+              "vent_type_ID",
+              "room_height",
+              "V_n50",
+              "result_n50",
+              "coeff_e",
+              "coeff_f"
+            ]
+          ]
+        ]
+      }
+    }
+  },
+  "selection": [
+    {
+      "type": "Sketchup::Face",
+      "entityID": 4037,
+      "persistent_id": 33418,
+      "layer": "Layer0",
+      "dictionaries": {
+        "DesignPH_dict": {
+          "BackMaterial": "Default",
+          "Material": "Default",
+          "areaGroupAuto": 8,
+          "assemblyIDAuto": "83ud",
+          "descNameAuto": "Wall_004_S",
+          "faceTypeAuto": "xo",
+          "tempZoneAuto": "A"
+        }
+      },
+      "area_m2": 343.5536,
+      "normal": [
+        0.0,
+        -1.0,
+        0.0
+      ],
+      "material": "designPH front material - Red",
+      "back_material": "designPH reverse material - Red"
+    }
+  ]
+}

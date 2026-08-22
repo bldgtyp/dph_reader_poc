@@ -1,0 +1,194 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>DesignPH-PLUS — Phase 3 spike</title>
+    <style>
+      body { font: 12px/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; margin: 0.75rem; }
+      h1 { font-size: 1rem; margin: 0 0 0.5rem; }
+      #log { white-space: pre-wrap; background: #f4f4f4; padding: 0.5rem; border-radius: 4px; height: 22rem; overflow: auto; }
+      .note { color: #666; margin: 0.25rem 0 0.5rem; }
+    </style>
+  </head>
+  <body>
+    <h1>Phase 3 — Pyodide inside HtmlDialog</h1>
+    <p class="note">Read-only. Nothing here writes to the SketchUp model.</p>
+    <div id="log">starting…</div>
+
+    <script src="../vendor/pyodide/pyodide.js"></script>
+    <script src="spike.js"></script>
+    <script>
+      (function () {
+        "use strict";
+
+        var element = document.getElementById("log");
+        var host = typeof sketchup !== "undefined" ? sketchup : null;
+
+        SPIKE.onLog = function (line) {
+          element.textContent += "\n" + line;
+          element.scrollTop = element.scrollHeight;
+          if (host && host.spike_log) host.spike_log(line);
+        };
+
+        /**
+         * The Ruby bridge, as two promise-shaped calls.
+         *
+         * `HtmlDialog` gives JS a one-way `sketchup.<callback>(string)` and gives Ruby a one-way
+         * `execute_script`. Neither returns a value, so a round trip has to be assembled by hand:
+         * JS keeps a pending resolver, Ruby answers by calling back into `SPIKE_HOST.resolve`.
+         */
+        var pending = {};
+        var nextId = 0;
+        window.SPIKE_HOST = {
+          resolve: function (id, payload) {
+            var resolver = pending[id];
+            delete pending[id];
+            if (resolver) resolver(payload);
+          },
+          /** Ruby → JS direction of the bridge probe: verify what arrived and report back. */
+          receiveFromRuby: function (json) {
+            var ok = false;
+            var size = null;
+            try {
+              var message = JSON.parse(json);
+              size = message.body.length;
+              ok = SPIKE.checksum(message.body) === message.sum && size === message.size;
+            } catch (error) {
+              ok = false;
+            }
+            if (host && host.spike_bridge_down_result) {
+              host.spike_bridge_down_result(JSON.stringify({ ok: ok, received_bytes: size }));
+            }
+          },
+        };
+
+        /** JS → Ruby, awaiting Ruby's echo. Used by `SPIKE.probeBridge`. */
+        function askRuby(channel, message) {
+          if (!host || !host[channel]) return Promise.reject(new Error("no host callback " + channel));
+          var id = ++nextId;
+          message.id = id;
+          return new Promise(function (resolve, reject) {
+            pending[id] = resolve;
+            setTimeout(function () {
+              if (pending[id]) {
+                delete pending[id];
+                reject(new Error("no reply from Ruby within 30 s"));
+              }
+            }, 30000);
+            host[channel](JSON.stringify(message));
+          });
+        }
+
+        /**
+         * End with a verdict, not with whatever the last log line happened to be.
+         *
+         * Worth the code: an early build left a 20-line Python traceback as the final thing on
+         * screen after a *successful* run, and reading the result meant parsing JSON by hand. A run
+         * nobody can grade at a glance has not really reported anything.
+         */
+        function verdict(report) {
+          var boot = report.boot || {};
+          var checks = [
+            ["stack imports", boot.step2 && boot.step2.ok],
+            ["builds a model", boot.step3 && boot.step3.ok],
+            ["bridge round trip", report.bridge_up && report.bridge_up.max_ok_bytes > 0],
+          ];
+          if (report.step4) checks.push(["real designPH faces", report.step4.ok]);
+          var failed = checks.filter(function (c) { return !c[1]; });
+
+          SPIKE.log("");
+          SPIKE.log("================ " + (report.fatal || failed.length ? "FAILED" : "PASSED") + " ================");
+          checks.forEach(function (c) {
+            SPIKE.log((c[1] ? "  ok    " : "  FAIL  ") + c[0]);
+          });
+          if (report.step4 && report.step4.ok) {
+            SPIKE.log("  " + report.step4.faces_translated + "/" + report.step4.faces_in +
+                      " faces translated, " + report.step4.rejected_count + " rejected");
+            SPIKE.log("  " + report.step4.hbjson_bytes + " bytes of HBJSON");
+          }
+          if (report.fatal) SPIKE.log("  fatal: " + String(report.fatal).split("\n")[0]);
+        }
+
+        function finish(report) {
+          verdict(report);
+          report.log = SPIKE.logLines;
+          window.SPIKE_RESULT = report;
+          if (host && host.spike_result) host.spike_result(JSON.stringify(report));
+        }
+
+        /**
+         * Ruby drives the run, because only Ruby knows which load strategy it used and which model
+         * is open. `context.faces` is absent for a geometry-free run.
+         */
+        window.startSpike = function (context) {
+          context = context || {};
+          // Summarise rather than echo: the faces came *from* the host, and reflecting a whole
+          // model's geometry back into the result file would double its size for nothing.
+          var report = {
+            context: {
+              strategy: context.strategy,
+              model_name: context.faces && context.faces.model_name,
+              faces_in: context.faces ? context.faces.faces.length : 0,
+            },
+          };
+          // The pinned wheel list lives in `vendor/manifest.json`, written by `vendor_payload.py`.
+          // Reading it here keeps Ruby out of the payload's business entirely.
+          SPIKE.readManifest("../vendor/manifest.json")
+            .then(function (manifest) {
+              report.payload = { pyodide: manifest.pyodide_version, wheels: manifest.wheel_order };
+              return SPIKE.boot({
+                indexURL: "../vendor/pyodide/",
+                spikePyURL: "spike.py",
+                wheelURLs: manifest.wheel_order.map(function (name) {
+                  return { name: name, url: "../vendor/wheels/" + name };
+                }),
+              });
+            })
+            .then(function (boot) {
+              if (boot.step3) delete boot.step3.hbjson; // absent when step 2 failed
+              report.boot = boot;
+              // Metric 5 — how much JSON survives a JS → Ruby → JS round trip.
+              return SPIKE.probeBridge(function (message) {
+                return askRuby("spike_bridge_echo", message);
+              }, [1e3, 1e4, 1e5, 1e6, 4e6]);
+            })
+            .then(function (bridge) {
+              report.bridge_up = bridge;
+              SPIKE.log("bridge JS→Ruby max ok: " + bridge.max_ok_bytes + " bytes");
+              // Ruby's half of the probe. Asked for here rather than at startup so that
+              // megabytes of `execute_script` never compete with Pyodide fetching its assets.
+              if (host && host.spike_probe_down) host.spike_probe_down("");
+              return new Promise(function (resolve) {
+                setTimeout(resolve, 1000); // let Ruby's sends land before moving on
+              });
+            })
+            .then(function () {
+              if (!context.faces) return null;
+              return SPIKE.runStep4(context.faces);
+            })
+            .then(function (step4) {
+              if (step4) {
+                report.hbjson = step4.hbjson; // Ruby writes it to disk
+                delete step4.hbjson;
+                report.step4 = step4;
+              }
+              finish(report);
+            })
+            .catch(function (error) {
+              report.fatal = String((error && error.stack) || error);
+              finish(report);
+            });
+        };
+
+        // Ruby drives from here. Announcing readiness has to come from this side: `execute_script`
+        // issued straight after `HtmlDialog#show` can land before these scripts have run.
+        if (host && host.spike_ready) {
+          SPIKE.log("scripts loaded — handing control to Ruby");
+          host.spike_ready("");
+        } else {
+          SPIKE.log("no `sketchup` host object — open this through the extension, not directly");
+        }
+      })();
+    </script>
+  </body>
+</html>

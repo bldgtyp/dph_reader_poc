@@ -1,0 +1,16 @@
+{
+  "mode": "http",
+  "ok": false,
+  "wall_clock_s": 90.5,
+  "result": {
+    "fatal": "boot did not settle within 90000 ms",
+    "log": [
+      "[0.18s] loading pyodide from ../vendor/pyodide/"
+    ]
+  },
+  "console": [
+    "[0.18s] loading pyodide from ../vendor/pyodide/",
+    "wasm instantiation failed!",
+    "CompileError: WebAssembly.instantiateStreaming(): invalid value type 'externref', enable with --experimental-wasm-reftypes @+166"
+  ]
+}

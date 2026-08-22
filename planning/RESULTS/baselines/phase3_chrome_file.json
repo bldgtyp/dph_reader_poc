@@ -1,0 +1,40 @@
+{
+  "mode": "file",
+  "ok": false,
+  "wall_clock_s": 1.3,
+  "result": {
+    "started_at": "2026-08-20T00:46:00.939Z",
+    "manifest_error": "XHR failed for ../vendor/manifest.json",
+    "fatal": "TypeError: Failed to fetch dynamically imported module: file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/vendor/pyodide/pyodide.asm.mjs",
+    "log": [
+      "[0.67s] fetch shim: routing ../vendor/manifest.json through XHR (Failed to fetch)",
+      "[0.67s] manifest unreadable (XHR failed for ../vendor/manifest.json) \u2014 continuing, to record where the runtime itself stops",
+      "[0.67s] loading pyodide from ../vendor/pyodide/",
+      "[0.68s] fetch shim: routing file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/vendor/pyodide/pyodide-lock.json through XHR (Failed to fetch)",
+      "[0.68s] fetch shim: routing undefined through XHR (Failed to fetch)",
+      "[0.68s] fetch shim: routing undefined through XHR (Failed to fetch)"
+    ]
+  },
+  "console": [
+    "[browser:error] Access to fetch at 'file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/vendor/manifest.json' from origin 'null' has been blocked by CORS policy: Cross origin requests are only supported for protocol schemes: chrome, chrome-extension, chrome-untrusted, data, http, https, isolated-app. file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/harness/harness.html?manual",
+    "[browser:error] Failed to load resource: net::ERR_FAILED file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/vendor/manifest.json",
+    "[0.67s] fetch shim: routing ../vendor/manifest.json through XHR (Failed to fetch)",
+    "[browser:error] Access to XMLHttpRequest at 'file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/vendor/manifest.json' from origin 'null' has been blocked by CORS policy: Cross origin requests are only supported for protocol schemes: chrome, chrome-extension, chrome-untrusted, data, http, https, isolated-app. file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/harness/harness.html?manual",
+    "[0.67s] manifest unreadable (XHR failed for ../vendor/manifest.json) \u2014 continuing, to record where the runtime itself stops",
+    "[0.67s] loading pyodide from ../vendor/pyodide/",
+    "[browser:error] Failed to load resource: net::ERR_FAILED file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/vendor/manifest.json",
+    "[browser:error] Access to fetch at 'file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/vendor/pyodide/pyodide-lock.json' from origin 'null' has been blocked by CORS policy: Cross origin requests are only supported for protocol schemes: chrome, chrome-extension, chrome-untrusted, data, http, https, isolated-app. file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/harness/harness.html?manual",
+    "[browser:error] Failed to load resource: net::ERR_FAILED file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/vendor/pyodide/pyodide-lock.json",
+    "[0.68s] fetch shim: routing file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/vendor/pyodide/pyodide-lock.json through XHR (Failed to fetch)",
+    "[browser:error] Access to fetch at 'file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/vendor/pyodide/python_stdlib.zip' from origin 'null' has been blocked by CORS policy: Cross origin requests are only supported for protocol schemes: chrome, chrome-extension, chrome-untrusted, data, http, https, isolated-app. file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/harness/harness.html?manual",
+    "[browser:error] Failed to load resource: net::ERR_FAILED file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/vendor/pyodide/python_stdlib.zip",
+    "[0.68s] fetch shim: routing undefined through XHR (Failed to fetch)",
+    "[browser:error] Access to fetch at 'file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/vendor/pyodide/pyodide.asm.wasm' from origin 'null' has been blocked by CORS policy: Cross origin requests are only supported for protocol schemes: chrome, chrome-extension, chrome-untrusted, data, http, https, isolated-app. file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/harness/harness.html?manual",
+    "[browser:error] Failed to load resource: net::ERR_FAILED file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/vendor/pyodide/pyodide.asm.wasm",
+    "[0.68s] fetch shim: routing undefined through XHR (Failed to fetch)",
+    "[browser:error] Access to script at 'file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/vendor/pyodide/pyodide.asm.mjs' from origin 'null' has been blocked by CORS policy: Cross origin requests are only supported for protocol schemes: chrome, chrome-extension, chrome-untrusted, data, http, https, isolated-app. file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/harness/harness.html?manual",
+    "[browser:error] Failed to load resource: net::ERR_FAILED file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/vendor/pyodide/pyodide.asm.mjs",
+    "[browser:error] Access to XMLHttpRequest at 'file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/vendor/pyodide/pyodide-lock.json' from origin 'null' has been blocked by CORS policy: Cross origin requests are only supported for protocol schemes: chrome, chrome-extension, chrome-untrusted, data, http, https, isolated-app. file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/harness/harness.html?manual",
+    "[browser:error] Failed to load resource: net::ERR_FAILED file:///Users/em/Desktop/dph_plus_testing/planning/spikes/pyodide/vendor/pyodide/pyodide-lock.json"
+  ]
+}

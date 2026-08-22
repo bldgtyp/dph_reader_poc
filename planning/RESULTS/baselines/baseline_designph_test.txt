@@ -1,0 +1,23 @@
+DesignPH_dict -- 7 distinct keys, 7 records
+
+designPH_version  (n=1)
+        1  [str] '2.4.0 BETA'
+
+ihg_ud  (n=1)
+        1  [str] 'BAhbCmkGSSIHMTAGOgZFVFsISSIGIwY7AFQ6CVRZUEU6…
+
+klima_ID  (n=1)
+        1  [str] 'DE-9999'
+
+tracker_data  (n=1)
+        1  [str] 'BAhbCVsISSIGIwY6BkVUOglUWVBFOgpUQUJMRVsIQAc6…
+
+vent_ud  (n=1)
+        1  [str] 'BAhbD0kiCTk3dWQGOgZFVGkGZggyLjVmBjBmCDAuNmYJ…
+
+tempZoneAuto  (n=1)
+        1  [nil] None
+
+Dashboard  (n=1)
+        1  [bool] True
+

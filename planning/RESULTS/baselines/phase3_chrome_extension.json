@@ -1,0 +1,203 @@
+{
+  "mode": "extension",
+  "ok": true,
+  "wall_clock_s": 34.1,
+  "result": {
+    "context": {
+      "strategy": "stub",
+      "model_name": "Stub_Model",
+      "faces_in": 1441
+    },
+    "payload": {
+      "pyodide": "0.24.1",
+      "wheels": [
+        "micropip-0.11.1-py3-none-any.whl",
+        "packaging-26.1-py3-none-any.whl",
+        "honeybee_core-1.64.65-py3-none-any.whl",
+        "honeybee_energy-1.123.23-py3-none-any.whl",
+        "honeybee_ph-1.33.48-py3-none-any.whl",
+        "honeybee_standards-2.0.7-py2.py3-none-any.whl",
+        "ladybug_core-0.44.56-py3-none-any.whl",
+        "ladybug_geometry-1.35.3-py3-none-any.whl",
+        "ladybug_geometry_polyskel-1.7.52-py3-none-any.whl",
+        "ph_units-1.5.38-py3-none-any.whl"
+      ]
+    },
+    "boot": {
+      "step2": {
+        "ok": true,
+        "failed": {},
+        "import_ms": {
+          "ladybug_geometry.geometry3d.pointvector": 93.2,
+          "ladybug.location": 85.5,
+          "honeybee.room": 476.9,
+          "honeybee.model": 0,
+          "honeybee_energy.lib.constructionsets": 0,
+          "honeybee_ph.space": 0,
+          "honeybee_ph": 0
+        },
+        "import_total_ms": 655.6,
+        "versions": {
+          "honeybee-core": "1.64.65",
+          "honeybee-energy": "1.123.23",
+          "honeybee-ph": "1.33.48",
+          "honeybee-standards": "2.0.7",
+          "ladybug-core": "0.44.56",
+          "ladybug-geometry": "1.35.3",
+          "ladybug-geometry-polyskel": "1.7.52",
+          "ph-units": "1.5.38"
+        },
+        "runtime": {
+          "python_version": "3.11.3",
+          "platform": "Emscripten-3.1.45-wasm32-32bit",
+          "is_pyodide": true
+        }
+      },
+      "step3": {
+        "ok": true,
+        "hbjson_bytes": 29690,
+        "counts": {
+          "rooms": 1,
+          "faces": 6,
+          "floor_area_m2": 54,
+          "volume_m3": 162
+        },
+        "round_trip": {
+          "ok": true,
+          "rooms": 1,
+          "faces": 6,
+          "apertures": 0,
+          "spaces": 1
+        },
+        "build_ms": {
+          "Room.from_box": 0.5,
+          "Space.from_room": 0.7,
+          "Model()": 0.1,
+          "to_dict": 2.9,
+          "json.dumps": 1.1,
+          "from_dict": 3.3
+        },
+        "build_total_ms": 8.6,
+        "ph_space": {
+          "volumes": 1
+        }
+      },
+      "timings": {
+        "pyodide_ready_ms": 824,
+        "wheels_fetched_ms": 838,
+        "wheels_installed_ms": 1006,
+        "spike_imported_ms": 1022,
+        "steps_2_3_ms": 1695
+      },
+      "fetch_strategy": "fetch",
+      "install_strategy": "zipfile",
+      "micropip_error": "Traceback (most recent call last):\n  File \"/lib/python3.11/site-packages/micropip/_compat/_compat_in_pyodide.py\", line 11, in <module>\n    from pyodide_js import loadedPackages, loadPackage, lockfileBaseUrl\nImportError: cannot import name 'lockfileBaseUrl' from 'pyodide_js' (unknown location)\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/lib/python311.zip/_pyodide/_base.py\", line 571, in eval_code_async\n    await CodeRunner(\n  File \"/lib/python311.zip/_pyodide/_base.py\", line 396, in run_async\n    await coroutine\n  File \"<exec>\", line 1, in <module>\n  File \"/lib/python3.11/site-packages/micropip/__init__.py\", line 1, in <module>\n    from .package_manager import PackageManager\n  File \"/lib/python3.11/site-packages/micropip/package_manager.py\", line 13, in <module>\n    from . import _mock_package, package_index\n  File \"/lib/python3.11/site-packages/micropip/package_index.py\", line 12, in <module>\n    from ._compat import CompatibilityLayer\n  File \"/lib/python3.11/site-packages/micropip/_compat/__init__.py\", line 10, in <module>\n    from ._compat_in_pyodide import CompatibilityInPyodide\n  File \"/lib/python3.11/site-packages/micropip/_compat/_compat_in_pyodide.py\", line 20, in <module>\n    raise ImportError(\nImportError: Failed to import pyodide modules, please report this issue to Pyodide team.\n",
+      "memory": {
+        "wasm_heap_mb": 28.8,
+        "js_heap_mb": 41.9,
+        "js_heap_limit_mb": 4192
+      }
+    },
+    "bridge_up": {
+      "attempts": [
+        {
+          "bytes": 990,
+          "ok": true,
+          "ms": 0,
+          "echo_size": 990
+        },
+        {
+          "bytes": 9990,
+          "ok": true,
+          "ms": 0,
+          "echo_size": 9990
+        },
+        {
+          "bytes": 99990,
+          "ok": true,
+          "ms": 0,
+          "echo_size": 99990
+        },
+        {
+          "bytes": 999990,
+          "ok": true,
+          "ms": 2,
+          "echo_size": 999990
+        },
+        {
+          "bytes": 3999990,
+          "ok": true,
+          "ms": 7,
+          "echo_size": 3999990
+        }
+      ],
+      "max_ok_bytes": 3999990
+    },
+    "step4": {
+      "ok": true,
+      "hbjson_bytes": 859392,
+      "counts": {
+        "rooms": 1,
+        "faces": 1441,
+        "floor_area_m2": 0,
+        "volume_m3": 0
+      },
+      "round_trip": {
+        "ok": true,
+        "rooms": 1,
+        "faces": 1441,
+        "apertures": 0,
+        "spaces": 0
+      },
+      "build_ms": {
+        "Face3D+Face": 68.2,
+        "Room()": 0.1,
+        "Space.from_room": 0.5,
+        "Model()": 0,
+        "to_dict": 71.3,
+        "json.dumps": 15.3,
+        "from_dict": 22789.4
+      },
+      "build_total_ms": 22944.8,
+      "ph_space": {
+        "volumes": 0,
+        "skipped": "ValueError: Honeybee Room 'Spike_designPH_Room' has no Floor faces."
+      },
+      "faces_in": 1441,
+      "faces_translated": 1441,
+      "rejected": [],
+      "rejected_count": 0,
+      "is_solid": false,
+      "wall_clock_ms": 29801,
+      "payload_bytes": 145238,
+      "memory": {
+        "wasm_heap_mb": 49.9,
+        "js_heap_mb": 47.9,
+        "js_heap_limit_mb": 4192
+      }
+    },
+    "log": [
+      "[0.02s] scripts loaded \u2014 handing control to Ruby",
+      "[0.02s] loading pyodide from ../vendor/pyodide/",
+      "[0.85s] pyodide ready in 824 ms",
+      "[0.86s] 10 wheels staged via fetch",
+      "[0.92s] micropip.install failed (Traceback (most recent call last):\n  File \"/lib/python3.11/site-packages/micropip/_compat/_compat_in_pyodide.py\", line 11, in <module>\n    from pyodide_js import loadedPackages, loadPackage, lockfileBaseUrl\nImportError: cannot import name 'lockfileBaseUrl' from 'pyodide_js' (unknown location)\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/lib/python311.zip/_pyodide/_base.py\", line 571, in eval_code_async\n    await CodeRunner(\n  File \"/lib/python311.zip/_pyodide/_base.py\", line 396, in run_async\n    await coroutine\n  File \"<exec>\", line 1, in <module>\n  File \"/lib/python3.11/site-packages/micropip/__init__.py\", line 1, in <module>\n    from .package_manager import PackageManager\n  File \"/lib/python3.11/site-packages/micropip/package_manager.py\", line 13, in <module>\n    from . import _mock_package, package_index\n  File \"/lib/python3.11/site-packages/micropip/package_index.py\", line 12, in <module>\n    from ._compat import CompatibilityLayer\n  File \"/lib/python3.11/site-packages/micropip/_compat/__init__.py\", line 10, in <module>\n    from ._compat_in_pyodide import CompatibilityInPyodide\n  File \"/lib/python3.11/site-packages/micropip/_compat/_compat_in_pyodide.py\", line 20, in <module>\n    raise ImportError(\nImportError: Failed to import pyodide modules, please report this issue to Pyodide team.\n) \u2014 falling back to zipfile unpack",
+      "[1.03s] payload installed via zipfile",
+      "[1.72s] boot complete in 1695 ms",
+      "[1.74s] bridge JS\u2192Ruby max ok: 3999990 bytes"
+    ],
+    "hbjson_sample": "{\"type\": \"Model\", \"identifier\": \"Stub_Model\", \"display_name\": \"Stub_Model\", \"units\": \"Meters\", \"properties\": {\"type\": \"ModelProperties\", \"energy\": {\"type\": \"ModelEnergyProperties\", \"global_construction_set\": {\"type\": \"GlobalConstructionSet\", \"wall_set\": {\"type\": \"WallConstructionSetAbridged\", \"exterior_construction\": \"Generic Exterior Wall\", \"interior_construction\": \"Generic Interior Wall\", \"groun"
+  },
+  "console": [
+    "[0.68s] no `sketchup` host object \u2014 open this through the extension, not directly",
+    "[browser:error] Failed to load resource: the server responded with a status of 404 (File not found) http://127.0.0.1:52558/favicon.ico",
+    "[0.02s] scripts loaded \u2014 handing control to Ruby",
+    "[0.02s] loading pyodide from ../vendor/pyodide/",
+    "[0.85s] pyodide ready in 824 ms",
+    "[0.86s] 10 wheels staged via fetch",
+    "[0.92s] micropip.install failed (Traceback (most recent call last):\n  File \"/lib/python3.11/site-packages/micropip/_compat/_compat_in_pyodide.py\", line 11, in <module>\n    from pyodide_js import loadedPackages, loadPackage, lockfileBaseUrl\nImportError: cannot import name 'lockfileBaseUrl' from 'pyodide_js' (unknown location)\n\nThe above exception was the direct cause of the following exception:\n\nTraceback (most recent call last):\n  File \"/lib/python311.zip/_pyodide/_base.py\", line 571, in eval_code_async\n    await CodeRunner(\n  File \"/lib/python311.zip/_pyodide/_base.py\", line 396, in run_async\n    await coroutine\n  File \"<exec>\", line 1, in <module>\n  File \"/lib/python3.11/site-packages/micropip/__init__.py\", line 1, in <module>\n    from .package_manager import PackageManager\n  File \"/lib/python3.11/site-packages/micropip/package_manager.py\", line 13, in <module>\n    from . import _mock_package, package_index\n  File \"/lib/python3.11/site-packages/micropip/package_index.py\", line 12, in <module>\n    from ._compat import CompatibilityLayer\n  File \"/lib/python3.11/site-packages/micropip/_compat/__init__.py\", line 10, in <module>\n    from ._compat_in_pyodide import CompatibilityInPyodide\n  File \"/lib/python3.11/site-packages/micropip/_compat/_compat_in_pyodide.py\", line 20, in <module>\n    raise ImportError(\nImportError: Failed to import pyodide modules, please report this issue to Pyodide team.\n) \u2014 falling back to zipfile unpack",
+    "[1.03s] payload installed via zipfile",
+    "[1.72s] boot complete in 1695 ms",
+    "[1.74s] bridge JS\u2192Ruby max ok: 3999990 bytes"
+  ]
+}

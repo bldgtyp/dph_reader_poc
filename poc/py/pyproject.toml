@@ -1,0 +1,58 @@
+[project]
+name = "dph-translator"
+version = "0.1.0"
+description = "DesignPH-PLUS POC translation core: designPH extraction JSON -> HBJSON + report"
+# Pyodide 0.24.1 is CPython 3.11.3. The venv matches it exactly so that a test passing here is
+# evidence about the runtime, not about the laptop.
+requires-python = "==3.11.*"
+
+# ⚠ Install these with `--no-deps` (`make venv`), and **never lock them**. `honeybee-core` *declares* honeybee-schema ->
+# pydantic -> pydantic-core (Rust, no pure wheel), and nothing outside its `cli/` modules ever
+# imports it. Resolving the declared closure would fail; the imports it actually makes are pure.
+# `00_Context/HONEYBEE_STACK.md` §2, and Phase 2's lesson: a declared dependency is not an
+# imported one, and only the import decides.
+#
+# A `uv.lock` here would be worse than useless: it resolves the declared closure successfully, so it
+# reads as authoritative while describing an environment Pyodide cannot host. It is gitignored.
+dependencies = [
+    "honeybee-core==1.64.65",
+    "honeybee-energy==1.123.23",
+    "honeybee-ph==1.33.48",
+    "honeybee-standards==2.0.7",
+    "ladybug-core==0.44.56",
+    "ladybug-geometry==1.35.3",
+    "ladybug-geometry-polyskel==1.7.52",
+    "ph-units==1.5.38",
+]
+
+[dependency-groups]
+dev = ["pytest>=8", "ruff>=0.6", "mypy>=1.11"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-q"
+
+
+[tool.mypy]
+python_version = "3.11"
+files = ["dph_translator"]
+# The honeybee stack ships no type information; the translator's own code is fully typed.
+ignore_missing_imports = true
+disallow_untyped_defs = true
+
+# ⚠ Do not follow imports into the stack. It must stay **IronPython 2.7 compatible** — that
+# constraint is exactly what keeps it pure Python and therefore Pyodide-viable — so it annotates
+# with Python-2-style `# type:` comments. `honeybee_ph/phi.py:42` places one where mypy cannot
+# parse it and reports `Invalid syntax`, which then prevents any further checking. Skipping the
+# follow keeps our own code fully checked and leaves theirs to them.
+[[tool.mypy.overrides]]
+module = [
+    "honeybee.*",
+    "honeybee_energy.*",
+    "honeybee_energy_ph.*",
+    "honeybee_ph.*",
+    "ladybug.*",
+    "ladybug_geometry.*",
+    "ph_units.*",
+]
+follow_imports = "skip"

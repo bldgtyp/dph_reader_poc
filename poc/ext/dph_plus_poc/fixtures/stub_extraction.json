@@ -1,0 +1,117 @@
+{
+  "contract_version": 2,
+  "generated_by": "dph_plus_poc collector STUB (POC-1) -- no SketchUp model was read",
+  "model": {
+    "file_name": "POC-1 stub extraction",
+    "designph_versions": ["2.1.15"],
+    "klima_id": "US0058a",
+    "klima_standort": null,
+    "units_note": "geometry in metres; raw designPH table and DC values untouched (mixed units, see contract 4/5)"
+  },
+  "counts": {
+    "faces_walked": 8,
+    "faces_tagged": 7,
+    "faces_classified": 6,
+    "edges_tagged": 0,
+    "windows_found": 0,
+    "tables_found": ["assemblies_ud"]
+  },
+  "faces": [
+    {
+      "id": "face_stub_floor",
+      "entity_id": 1001,
+      "area_group": 1,
+      "temp_zone": "A",
+      "assembly_ref": "01ud",
+      "desc_name": "STUB FLOOR",
+      "tfa_rf": 1.0,
+      "outer_loop": [[0.0, 0.0, 0.0], [5.0, 0.0, 0.0], [5.0, 4.0, 0.0], [0.0, 4.0, 0.0]],
+      "inner_loops": [],
+      "area_m2": 20.0,
+      "both_generations": []
+    },
+    {
+      "id": "face_stub_wall_south",
+      "entity_id": 1002,
+      "area_group": "8",
+      "temp_zone": "A",
+      "assembly_ref": "02ud",
+      "desc_name": "STUB WALL SOUTH",
+      "tfa_rf": null,
+      "outer_loop": [[0.0, 0.0, 0.0], [0.0, 0.0, 3.0], [5.0, 0.0, 3.0], [5.0, 0.0, 0.0]],
+      "inner_loops": [[[1.0, 0.0, 1.0], [2.0, 0.0, 1.0], [2.0, 0.0, 2.0], [1.0, 0.0, 2.0]]],
+      "area_m2": 14.0,
+      "both_generations": []
+    },
+    {
+      "id": "face_stub_wall_east",
+      "entity_id": 1003,
+      "area_group": 8,
+      "temp_zone": "A",
+      "assembly_ref": "02ud",
+      "desc_name": "STUB WALL EAST",
+      "tfa_rf": null,
+      "outer_loop": [[5.0, 0.0, 0.0], [5.0, 0.0, 3.0], [5.0, 4.0, 3.0], [5.0, 4.0, 0.0]],
+      "inner_loops": [],
+      "area_m2": 12.0,
+      "both_generations": []
+    },
+    {
+      "id": "face_stub_wall_north",
+      "entity_id": 1004,
+      "area_group": "8",
+      "temp_zone": "A",
+      "assembly_ref": "02ud",
+      "desc_name": null,
+      "tfa_rf": null,
+      "outer_loop": [[5.0, 4.0, 0.0], [5.0, 4.0, 3.0], [0.0, 4.0, 3.0], [0.0, 4.0, 0.0]],
+      "inner_loops": [],
+      "area_m2": 15.0,
+      "both_generations": []
+    },
+    {
+      "id": "face_stub_wall_west",
+      "entity_id": 1005,
+      "area_group": 9,
+      "temp_zone": "A",
+      "assembly_ref": null,
+      "desc_name": "STUB WALL WEST (ground)",
+      "tfa_rf": null,
+      "outer_loop": [[0.0, 4.0, 0.0], [0.0, 4.0, 3.0], [0.0, 0.0, 3.0], [0.0, 0.0, 0.0]],
+      "inner_loops": [],
+      "area_m2": 12.0,
+      "both_generations": []
+    },
+    {
+      "id": "face_stub_roof",
+      "entity_id": 1006,
+      "area_group": "10",
+      "temp_zone": "A",
+      "assembly_ref": "03ud",
+      "desc_name": "STUB ROOF",
+      "tfa_rf": null,
+      "outer_loop": [[0.0, 0.0, 3.0], [0.0, 4.0, 3.0], [5.0, 4.0, 3.0], [5.0, 0.0, 3.0]],
+      "inner_loops": [],
+      "area_m2": 20.0,
+      "both_generations": []
+    }
+  ],
+  "edges": [],
+  "windows": [],
+  "tables": {
+    "assemblies_ud": {
+      "tokens": ["id", "desc", "assem_num", "thk", "U_value", "int_insul"],
+      "rows": [
+        ["01ud", "STUB slab on grade", 1, 0.3, 0.18, false],
+        ["02ud", "STUB exterior wall", 2, 0.4, 0.15, false],
+        ["03ud", "STUB roof", 3, 0.5, 0.11, false]
+      ]
+    }
+  },
+  "unclassified": {
+    "tagged_faces": [
+      { "id": "face_stub_unclassified", "area_group": "n", "tag": "Layer0" }
+    ],
+    "untagged_by_tag": { "Layer0": 1 }
+  }
+}

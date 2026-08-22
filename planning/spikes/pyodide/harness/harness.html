@@ -1,0 +1,128 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>DesignPH-PLUS — Pyodide spike harness (desktop Chrome)</title>
+    <style>
+      body { font: 13px/1.5 ui-monospace, SFMono-Regular, Menlo, monospace; margin: 1.5rem; max-width: 60rem; }
+      h1 { font-size: 1.1rem; }
+      #log { white-space: pre-wrap; background: #f4f4f4; padding: 0.75rem; border-radius: 4px; }
+      .note { color: #555; }
+    </style>
+  </head>
+  <body>
+    <h1>Pyodide spike — desktop Chrome control</h1>
+    <p class="note">
+      Runs the same <code>spike.js</code> and <code>spike.py</code> the SketchUp extension runs, in a
+      browser we can automate. A step that passes here and fails in SketchUp isolates the difference
+      to <code>HtmlDialog</code> — this page exists to make that bisection possible, not to prove the
+      extension works.
+    </p>
+    <div id="log">idle</div>
+
+    <script src="../vendor/pyodide/pyodide.js"></script>
+    <script src="../ext/dph_plus_spike/html/spike.js"></script>
+    <script>
+      (function () {
+        "use strict";
+
+        var VENDOR = "../vendor/";
+        var element = document.getElementById("log");
+        SPIKE.onLog = function (line) {
+          element.textContent += "\n" + line;
+        };
+
+        /**
+         * A stand-in for designPH face geometry at Adelphi's scale.
+         *
+         * Real vertices come from SketchUp (step 4 proper). This generates the same *shape* of
+         * payload — one quad per face, three floats per vertex, an area group per face — so the
+         * JSON size and the Python-side build cost are representative even though the building is
+         * not. Adelphi carries 1441 faces with a `DesignPH_dict`, of which 82 are classified.
+         */
+        function syntheticFaces(count) {
+          var faces = [];
+          var groups = [8, 8, 8, 10, 11, 1];
+          for (var i = 0; i < count; i++) {
+            var x = (i % 40) * 3.0;
+            var y = Math.floor(i / 40) * 3.0;
+            var z = (i % 7) * 0.5;
+            faces.push({
+              id: "synthetic_face_" + i,
+              // Deliberately mixed types: `areaGroupID` is a String on most faces of a real model
+              // (hard rule 5), so the Python side must survive both.
+              area_group: i % 3 === 0 ? String(groups[i % groups.length]) : groups[i % groups.length],
+              vertices: [
+                [x, y, z],
+                [x + 2.8, y, z],
+                [x + 2.8, y + 2.8, z],
+                [x, y + 2.8, z],
+              ],
+            });
+          }
+          return { model_name: "Synthetic_Adelphi_Scale", units: "Meters", faces: faces };
+        }
+        /**
+         * The full control run. Returns one JSON-safe object; the CDP driver awaits this promise.
+         * `faceCount` defaults to Adelphi's tagged-face count — the realistic worst case named in
+         * the phase plan.
+         */
+        window.runSpike = function (faceCount) {
+          var report = { started_at: new Date().toISOString() };
+          // The wheel list lives in `vendor/manifest.json`, written by `vendor_payload.py`. Reading
+          // it rather than repeating it keeps one pinned list in the project instead of four.
+          return SPIKE.readManifest(VENDOR + "manifest.json")
+            .catch(function (error) {
+              // Diagnostic value beats failing fast. If the manifest cannot even be read, carry on
+              // with an empty payload so the *runtime* load path is exercised too and its own
+              // failure is recorded — on file:// that is what surfaces the un-shimmable dynamic
+              // `import()` of `pyodide.asm.mjs`, which is the finding that closes off the whole
+              // strategy. The plan's step 1 asks for the exact failure, not the first one.
+              SPIKE.log("manifest unreadable (" + error.message + ") — continuing, to record where the runtime itself stops");
+              report.manifest_error = String(error.message || error);
+              return { wheel_order: [], bootstrap: [] };
+            })
+            .then(function (manifest) {
+              return SPIKE.boot({
+                indexURL: VENDOR + "pyodide/",
+                spikePyURL: "../ext/dph_plus_spike/html/spike.py",
+                wheelURLs: manifest.wheel_order.map(function (name) {
+                  return { name: name, url: VENDOR + "wheels/" + name };
+                }),
+              });
+            })
+            .then(function (boot) {
+              if (boot.step3) delete boot.step3.hbjson; // absent when step 2 failed
+              report.boot = boot;
+              return SPIKE.runStep4(syntheticFaces(faceCount || 1441));
+            })
+            .then(function (step4) {
+              report.hbjson_sample = (step4.hbjson || "").slice(0, 400);
+              delete step4.hbjson;
+              report.step4 = step4;
+              // Warm re-run: the same work on an already-loaded runtime, which is what decides
+              // whether the dialog is worth keeping alive between exports.
+              var warmStart = performance.now();
+              return SPIKE.call("step3_build_demo_model").then(function (warm) {
+                report.warm_rerun_ms = Math.round(performance.now() - warmStart);
+                report.warm_ok = warm.ok;
+                return report;
+              });
+            })
+            .catch(function (error) {
+              report.fatal = String((error && error.stack) || error);
+              return report;
+            })
+            .then(function (final) {
+              final.log = SPIKE.logLines;
+              window.SPIKE_RESULT = final;
+              return final;
+            });
+        };
+
+        // Auto-run when opened by hand as well as under the driver.
+        if (!/[?&]manual\b/.test(location.search)) window.runSpike();
+      })();
+    </script>
+  </body>
+</html>

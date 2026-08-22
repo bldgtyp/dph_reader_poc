@@ -1,0 +1,442 @@
+{
+  "passed": true,
+  "chromium_major": 88,
+  "results": {
+    "self_test": {
+      "steps": {
+        "imports": {
+          "ok": true,
+          "failed": {},
+          "import_ms": {
+            "ladybug_geometry.geometry3d.pointvector": 151.2,
+            "ladybug.location": 149.4,
+            "honeybee.room": 835.8,
+            "honeybee.model": 0,
+            "honeybee_energy.lib.constructionsets": 0,
+            "honeybee_ph.space": 0,
+            "honeybee_ph": 0
+          },
+          "import_total_ms": 1136.4,
+          "versions": {
+            "honeybee-core": "1.64.65",
+            "honeybee-energy": "1.123.23",
+            "honeybee-ph": "1.33.48",
+            "honeybee-standards": "2.0.7",
+            "ladybug-core": "0.44.56",
+            "ladybug-geometry": "1.35.3",
+            "ladybug-geometry-polyskel": "1.7.52",
+            "ph-units": "1.5.38"
+          },
+          "runtime": {
+            "python_version": "3.11.3",
+            "platform": "Emscripten-3.1.45-wasm32-32bit",
+            "is_pyodide": true
+          }
+        },
+        "model_round_trip": {
+          "ok": true,
+          "rooms": 1,
+          "faces": 6,
+          "hbjson_bytes": 27083,
+          "build_ms": {
+            "Room.from_box": 1.1,
+            "Model()": 0,
+            "to_dict+dumps": 5.3,
+            "from_dict": 6.7
+          }
+        },
+        "translator_seam": {
+          "ok": true,
+          "missing_keys": [],
+          "version": "0.2.0",
+          "hbjson_bytes": 26510
+        }
+      },
+      "verdict": {
+        "passed": true,
+        "headline": "PASSED",
+        "checks": [
+          {
+            "label": "stack imports",
+            "ok": true,
+            "detail": "1136.4 ms"
+          },
+          {
+            "label": "builds and reloads a model",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "label": "translator seam reachable",
+            "ok": true,
+            "detail": ""
+          },
+          {
+            "label": "bridge round trip",
+            "ok": true,
+            "detail": "1000000 bytes"
+          }
+        ]
+      },
+      "bridge": {
+        "attempts": [
+          {
+            "bytes": 1000,
+            "ok": true,
+            "ms": 0
+          },
+          {
+            "bytes": 100000,
+            "ok": true,
+            "ms": 4
+          },
+          {
+            "bytes": 1000000,
+            "ok": true,
+            "ms": 10
+          }
+        ],
+        "max_ok_bytes": 1000000
+      },
+      "ok": true,
+      "runtime": {
+        "timings": {
+          "pyodide_ready_ms": 1923,
+          "payload_staged_ms": 1944,
+          "wheel_unpack_ms": 2180,
+          "import_ms": 3384,
+          "boot_ms": 3384
+        },
+        "payload": {
+          "pyodide": "0.24.1",
+          "wheels": [
+            "honeybee_core-1.64.65-py3-none-any.whl",
+            "honeybee_energy-1.123.23-py3-none-any.whl",
+            "honeybee_ph-1.33.48-py3-none-any.whl",
+            "honeybee_standards-2.0.7-py2.py3-none-any.whl",
+            "ladybug_core-0.44.56-py3-none-any.whl",
+            "ladybug_geometry-1.35.3-py3-none-any.whl",
+            "ladybug_geometry_polyskel-1.7.52-py3-none-any.whl",
+            "ph_units-1.5.38-py3-none-any.whl"
+          ]
+        },
+        "wasm_heap_mb": 28.8,
+        "js_heap_mb": 61
+      }
+    },
+    "translate": {
+      "report": {
+        "summary": {
+          "translator_version": "0.2.0",
+          "hbjson_schema_version": "1.53.1",
+          "generated_by": "dph_plus_poc collector STUB (POC-1) -- no SketchUp model was read",
+          "model": "POC-1 stub extraction",
+          "designph_versions": [
+            "2.1.15"
+          ],
+          "faces": {
+            "in": 6,
+            "translated": 6,
+            "reported": 0
+          },
+          "apertures": {
+            "in": 0,
+            "translated": 0,
+            "reported": 0
+          },
+          "thermal_bridges": {
+            "in": 0,
+            "translated": 0,
+            "reported": 0
+          },
+          "spaces": {
+            "derived": 1,
+            "ceiling_height_m": 2.5
+          },
+          "tfa_m2_covered": 20,
+          "tfa_m2_lost": 0,
+          "assembly_tiers": {
+            "2-u-value": 5,
+            "none": 1
+          },
+          "libraries": {},
+          "tables_present": [
+            "assemblies_ud"
+          ],
+          "tables_undecodable": [],
+          "site": {
+            "klima_id": "US0058a",
+            "klima_standort": null,
+            "resolved": false,
+            "hb_default_site": {
+              "latitude": 40.6,
+              "longitude": -73.8,
+              "display_name": "cc49e984-68e6-416c-a15f-e01e5f6cdfc1"
+            }
+          },
+          "collector_counts": {
+            "faces_walked": 8,
+            "faces_tagged": 7,
+            "faces_classified": 6,
+            "edges_tagged": 0,
+            "windows_found": 0,
+            "tables_found": [
+              "assemblies_ud"
+            ]
+          },
+          "hbjson_bytes": 31906
+        },
+        "shading": "not-computed",
+        "shading_note": "No shading factors and no context geometry. Aperture reveal dimensions ARE present (ShadingDimensions, reveal fields only) \u2014 they are PHPP inputs, not a shading calculation.",
+        "notes": [
+          "no `vent_ud` table; using the default ceiling height",
+          "\u26a0 the HBJSON carries honeybee-ph's DEFAULT site (New York), not designPH's climate \u2014 designPH stores only a dataset id, which is recorded here instead",
+          "climate US0058a (unnamed) is carried as an identifier only \u2014 no dataset was resolved",
+          "HBJSON stamped as schema version 1.53.1"
+        ],
+        "unclassified": {
+          "tagged_faces": [
+            {
+              "id": "face_stub_unclassified",
+              "area_group": "n",
+              "tag": "Layer0"
+            }
+          ],
+          "tagged_face_count": 1,
+          "untagged_by_tag": {
+            "Layer0": 1
+          }
+        },
+        "entries": {
+          "assembly": {
+            "count": 6,
+            "outcomes": {
+              "translated": 5,
+              "reported-not-translated": 1
+            },
+            "listed": [
+              {
+                "id": "face_stub_floor",
+                "kind": "assembly",
+                "outcome": "translated",
+                "reason": "U=0.18 W/m\u00b2K from `assemblies_ud`, no build-up in the model",
+                "tier": "2-u-value",
+                "assembly_ref": "01ud",
+                "u_value": 0.18,
+                "ph_values": {
+                  "int_insul": false,
+                  "thk": 0.3
+                }
+              },
+              {
+                "id": "face_stub_wall_south",
+                "kind": "assembly",
+                "outcome": "translated",
+                "reason": "U=0.15 W/m\u00b2K from `assemblies_ud`, no build-up in the model",
+                "tier": "2-u-value",
+                "assembly_ref": "02ud",
+                "u_value": 0.15,
+                "ph_values": {
+                  "int_insul": false,
+                  "thk": 0.4
+                }
+              },
+              {
+                "id": "face_stub_wall_east",
+                "kind": "assembly",
+                "outcome": "translated",
+                "reason": "U=0.15 W/m\u00b2K from `assemblies_ud`, no build-up in the model",
+                "tier": "2-u-value",
+                "assembly_ref": "02ud",
+                "u_value": 0.15,
+                "ph_values": {
+                  "int_insul": false,
+                  "thk": 0.4
+                }
+              },
+              {
+                "id": "face_stub_wall_north",
+                "kind": "assembly",
+                "outcome": "translated",
+                "reason": "U=0.15 W/m\u00b2K from `assemblies_ud`, no build-up in the model",
+                "tier": "2-u-value",
+                "assembly_ref": "02ud",
+                "u_value": 0.15,
+                "ph_values": {
+                  "int_insul": false,
+                  "thk": 0.4
+                }
+              },
+              {
+                "id": "face_stub_wall_west",
+                "kind": "assembly",
+                "outcome": "reported-not-translated",
+                "reason": "the face carries no assembly reference",
+                "tier": "none",
+                "assembly_ref": null,
+                "u_value": null,
+                "ph_values": null
+              },
+              {
+                "id": "face_stub_roof",
+                "kind": "assembly",
+                "outcome": "translated",
+                "reason": "U=0.11 W/m\u00b2K from `assemblies_ud`, no build-up in the model",
+                "tier": "2-u-value",
+                "assembly_ref": "03ud",
+                "u_value": 0.10999999999999999,
+                "ph_values": {
+                  "int_insul": false,
+                  "thk": 0.5
+                }
+              }
+            ],
+            "truncated": false
+          },
+          "face": {
+            "count": 6,
+            "outcomes": {
+              "translated-with-notes": 3,
+              "translated": 3
+            },
+            "listed": [
+              {
+                "id": "face_stub_floor",
+                "kind": "face",
+                "outcome": "translated-with-notes",
+                "reason": "TFA marker: floor-area only; no boundary condition assigned, so honeybee defaults it to Ground \u2014 it is not an envelope surface and should not be read as one; area group 1 implies temp zone 'TFA', the face carries 'A'; geometry flipped normal-down to match its Floor type (designPH winds TFA and slab faces up)",
+                "area_group": 1,
+                "face_type": "Floor",
+                "boundary_condition": "Ground"
+              },
+              {
+                "id": "face_stub_wall_south",
+                "kind": "face",
+                "outcome": "translated",
+                "area_group": "8",
+                "face_type": "Wall",
+                "boundary_condition": "Outdoors"
+              },
+              {
+                "id": "face_stub_wall_east",
+                "kind": "face",
+                "outcome": "translated",
+                "area_group": 8,
+                "face_type": "Wall",
+                "boundary_condition": "Outdoors"
+              },
+              {
+                "id": "face_stub_wall_north",
+                "kind": "face",
+                "outcome": "translated",
+                "area_group": "8",
+                "face_type": "Wall",
+                "boundary_condition": "Outdoors"
+              },
+              {
+                "id": "face_stub_wall_west",
+                "kind": "face",
+                "outcome": "translated-with-notes",
+                "reason": "area group 9 implies temp zone 'B', the face carries 'A'; no construction: the face carries no assembly reference",
+                "area_group": 9,
+                "face_type": "Wall",
+                "boundary_condition": "Ground"
+              },
+              {
+                "id": "face_stub_roof",
+                "kind": "face",
+                "outcome": "translated-with-notes",
+                "reason": "geometry flipped normal-up to match its RoofCeiling type",
+                "area_group": "10",
+                "face_type": "RoofCeiling",
+                "boundary_condition": "Outdoors"
+              }
+            ],
+            "truncated": false
+          }
+        }
+      },
+      "verdict": {
+        "passed": true,
+        "headline": "PASSED WITH OMISSIONS",
+        "checks": [
+          {
+            "label": "classified faces translated",
+            "ok": true,
+            "detail": "6 of 6, 0 reported"
+          },
+          {
+            "label": "model serialises",
+            "ok": true,
+            "detail": "31906 bytes"
+          },
+          {
+            "label": "no identifier collision",
+            "ok": true,
+            "detail": "0 collision(s)"
+          },
+          {
+            "label": "every entity accounted for",
+            "ok": true,
+            "detail": "report completeness"
+          }
+        ]
+      },
+      "ok": true,
+      "runtime": {
+        "timings": {
+          "pyodide_ready_ms": 1923,
+          "payload_staged_ms": 1944,
+          "wheel_unpack_ms": 2180,
+          "import_ms": 3384,
+          "boot_ms": 3384
+        },
+        "payload": {
+          "pyodide": "0.24.1",
+          "wheels": [
+            "honeybee_core-1.64.65-py3-none-any.whl",
+            "honeybee_energy-1.123.23-py3-none-any.whl",
+            "honeybee_ph-1.33.48-py3-none-any.whl",
+            "honeybee_standards-2.0.7-py2.py3-none-any.whl",
+            "ladybug_core-0.44.56-py3-none-any.whl",
+            "ladybug_geometry-1.35.3-py3-none-any.whl",
+            "ladybug_geometry_polyskel-1.7.52-py3-none-any.whl",
+            "ph_units-1.5.38-py3-none-any.whl"
+          ]
+        },
+        "wasm_heap_mb": 28.8,
+        "js_heap_mb": 61
+      },
+      "hbjson_sample": "{\"type\": \"Model\", \"identifier\": \"POC-1_stub_extraction\", \"display_name\": \"POC-1 stub extraction\", \"units\": \"Meters\", \"properties\": {\"type\": \"ModelProperties\", \"energy\": {\"type\": \"ModelEnergyProperties\", \"global_construction_set\": {\"type\": \"GlobalConstructionSet\", \"wall_set\": {\"type\": \"WallConstructionSetAbridged\", \"exterior_construction\": \"Generic Exterior Wall\", \"interior_construction\": \"Generic "
+    }
+  },
+  "rendered": {
+    "banner": "PASSED WITH OMISSIONS",
+    "banner_class": "pass",
+    "summary_text": "intranslatedreportedfaces660apertures000thermal bridges000TFA 20 m\u00b2 covered, 0 m\u00b2 lost \u00b7 assembly tiers 2-u-value\u00d75, none\u00d71assembly face_stub_wall_west \u2014 the face carries no assembly reference",
+    "summary_rows": 4
+  },
+  "seconds": 4.2,
+  "console": [
+    "[0.13s] loading pyodide from ../vendor/pyodide/",
+    "wasm instantiation failed!",
+    "TypeError: Could not download wasm module",
+    "[0.03s] loading pyodide from ../vendor/pyodide/",
+    "[1.95s] pyodide ready in 1923 ms",
+    "[1.97s] 9 archives staged",
+    "[2.21s] payload unpacked into Pyodide's site-packages",
+    "[3.41s] boot complete in 3384 ms",
+    "[3.41s] action: self_test",
+    "[3.52s] PASSED",
+    "[3.52s]   ok    stack imports  (1136.4 ms)",
+    "[3.52s]   ok    builds and reloads a model",
+    "[3.52s]   ok    translator seam reachable",
+    "[3.52s]   ok    bridge round trip  (1000000 bytes)",
+    "[3.52s] action: translate (3409 chars)",
+    "[3.54s] PASSED WITH OMISSIONS",
+    "[3.54s]   ok    classified faces translated  (6 of 6, 0 reported)",
+    "[3.55s]   ok    model serialises  (31906 bytes)",
+    "[3.55s]   ok    no identifier collision  (0 collision(s))",
+    "[3.55s]   ok    every entity accounted for  (report completeness)"
+  ]
+}

@@ -1,0 +1,142 @@
+{
+  "mode": "http",
+  "ok": true,
+  "wall_clock_s": 25.4,
+  "result": {
+    "started_at": "2026-08-20T00:44:45.814Z",
+    "boot": {
+      "step2": {
+        "ok": true,
+        "failed": {},
+        "import_ms": {
+          "ladybug_geometry.geometry3d.pointvector": 120.7,
+          "ladybug.location": 104.6,
+          "honeybee.room": 661.7,
+          "honeybee.model": 0,
+          "honeybee_energy.lib.constructionsets": 0,
+          "honeybee_ph.space": 0.1,
+          "honeybee_ph": 0
+        },
+        "import_total_ms": 887.1,
+        "versions": {
+          "honeybee-core": "1.64.65",
+          "honeybee-energy": "1.123.23",
+          "honeybee-ph": "1.33.48",
+          "honeybee-standards": "2.0.7",
+          "ladybug-core": "0.44.56",
+          "ladybug-geometry": "1.35.3",
+          "ladybug-geometry-polyskel": "1.7.52",
+          "ph-units": "1.5.38"
+        },
+        "runtime": {
+          "python_version": "3.14.2",
+          "platform": "Emscripten-5.0.3-wasm32-32bit",
+          "is_pyodide": true
+        }
+      },
+      "step3": {
+        "ok": true,
+        "hbjson_bytes": 29690,
+        "counts": {
+          "rooms": 1,
+          "faces": 6,
+          "floor_area_m2": 54,
+          "volume_m3": 162
+        },
+        "round_trip": {
+          "ok": true,
+          "rooms": 1,
+          "faces": 6,
+          "apertures": 0,
+          "spaces": 1
+        },
+        "build_ms": {
+          "Room.from_box": 0.5,
+          "Space.from_room": 0.8,
+          "Model()": 0,
+          "to_dict": 2.4,
+          "json.dumps": 1.2,
+          "from_dict": 3.3
+        },
+        "build_total_ms": 8.2,
+        "ph_space": {
+          "volumes": 1
+        }
+      },
+      "timings": {
+        "pyodide_ready_ms": 1097,
+        "wheels_fetched_ms": 1112,
+        "wheels_installed_ms": 1465,
+        "spike_imported_ms": 1471,
+        "steps_2_3_ms": 2381
+      },
+      "fetch_strategy": "fetch",
+      "install_strategy": "micropip",
+      "memory": {
+        "wasm_heap_mb": 43.3,
+        "js_heap_mb": 29.9,
+        "js_heap_limit_mb": 4192
+      }
+    },
+    "hbjson_sample": "{\"type\": \"Model\", \"identifier\": \"Synthetic_Adelphi_Scale\", \"display_name\": \"Synthetic_Adelphi_Scale\", \"units\": \"Meters\", \"properties\": {\"type\": \"ModelProperties\", \"energy\": {\"type\": \"ModelEnergyProperties\", \"global_construction_set\": {\"type\": \"GlobalConstructionSet\", \"wall_set\": {\"type\": \"WallConstructionSetAbridged\", \"exterior_construction\": \"Generic Exterior Wall\", \"interior_construction\": \"Gene",
+    "step4": {
+      "ok": true,
+      "hbjson_bytes": 2139675,
+      "counts": {
+        "rooms": 1,
+        "faces": 1441,
+        "floor_area_m2": 3763.2,
+        "volume_m3": 5644.8
+      },
+      "round_trip": {
+        "ok": true,
+        "rooms": 1,
+        "faces": 1441,
+        "apertures": 0,
+        "spaces": 1
+      },
+      "build_ms": {
+        "Face3D+Face": 48,
+        "Room()": 0.2,
+        "Space.from_room": 46.6,
+        "Model()": 0.1,
+        "to_dict": 60.5,
+        "json.dumps": 40,
+        "from_dict": 17857.4
+      },
+      "build_total_ms": 18052.8,
+      "ph_space": {
+        "volumes": 480
+      },
+      "faces_in": 1441,
+      "faces_translated": 1441,
+      "rejected": [],
+      "rejected_count": 0,
+      "is_solid": false,
+      "wall_clock_ms": 21899,
+      "payload_bytes": 156920,
+      "memory": {
+        "wasm_heap_mb": 74.9,
+        "js_heap_mb": 26.2,
+        "js_heap_limit_mb": 4192
+      }
+    },
+    "warm_rerun_ms": 5,
+    "warm_ok": true,
+    "log": [
+      "[0.69s] loading pyodide from ../vendor/pyodide/",
+      "[1.78s] pyodide ready in 1097 ms",
+      "[1.80s] 10 wheels staged via fetch",
+      "[2.15s] payload installed via micropip",
+      "[3.07s] boot complete in 2381 ms"
+    ]
+  },
+  "console": [
+    "[browser:error] Failed to load resource: the server responded with a status of 404 (File not found) http://127.0.0.1:50260/favicon.ico",
+    "[0.69s] loading pyodide from ../vendor/pyodide/",
+    "[1.78s] pyodide ready in 1097 ms",
+    "[1.80s] 10 wheels staged via fetch",
+    "[2.15s] payload installed via micropip",
+    "[3.07s] boot complete in 2381 ms"
+  ]
+}

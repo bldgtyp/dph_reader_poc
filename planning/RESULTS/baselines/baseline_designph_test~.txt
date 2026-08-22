@@ -1,0 +1,51 @@
+DesignPH_dict -- 13 distinct keys, 48 records
+
+BackMaterial  (n=6)
+        6  [str] 'Default'
+
+Material  (n=6)
+        6  [str] 'Default'
+
+areaGroupAuto  (n=6)
+        4  [int] 8
+        1  [int] 11
+        1  [int] 10
+
+assemblyIDAuto  (n=6)
+        4  [str] '83ud'
+        1  [str] '85ud'
+        1  [str] '84ud'
+
+descNameAuto  (n=6)
+        1  [str] 'Floor_001_D'
+        1  [str] 'Roof_006_H'
+        1  [str] 'Wall_004_S'
+        1  [str] 'Wall_003_E'
+        1  [str] 'Wall_002_N'
+        1  [str] 'Wall_005_W'
+
+faceTypeAuto  (n=6)
+        6  [str] 'xo'
+
+tempZoneAuto  (n=6)
+        5  [str] 'A'
+        1  [str] 'B'
+
+designPH_version  (n=1)
+        1  [str] '2.2.29'
+
+ihg_ud  (n=1)
+        1  [str] 'BAhbCmkGSSIHMTAGOgZFVFsISSIGIwY7AFQ6CVRZUEU6…
+
+klima_ID  (n=1)
+        1  [str] 'DE-9999'
+
+tracker_data  (n=1)
+        1  [str] 'BAhbCVsISSIGIwY6BkVUOglUWVBFOgpUQUJMRVsIQAc6…
+
+vent_ud  (n=1)
+        1  [str] 'BAhbD0kiCTk3dWQGOgZFVGkGZggyLjVmBjBmCDAuNmYJ…
+
+Dashboard  (n=1)
+        1  [bool] True
+

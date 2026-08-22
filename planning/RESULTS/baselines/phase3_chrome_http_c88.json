@@ -1,0 +1,13 @@
+{
+  "mode": "http",
+  "ok": false,
+  "wall_clock_s": 602.0,
+  "result": {
+    "driver_error": "Connection timed out"
+  },
+  "console": [
+    "[0.58s] loading pyodide from ../vendor/pyodide/",
+    "wasm instantiation failed!",
+    "CompileError: WebAssembly.instantiateStreaming(): invalid value type 'externref', enable with --experimental-wasm-reftypes @+166"
+  ]
+}
