@@ -1,15 +1,19 @@
 # Reading a designPH `.skp` with no SketchUp — viability, limits, opportunities
 
-DATE: 2026-08-29 · written from HEADLESS Spike A + its capability probe
-STATUS: **Technical viability: established.** Every blocker that remains is legal or procurement.
+DATE: 2026-08-29 · written from HEADLESS Spike A + its capability probe; extended by Spike B
+STATUS: **Technical viability: established, and now demonstrated end to end.** Spike B emitted the
+frozen contract v2 from a headless read and it is **indistinguishable from the live SketchUp
+capture** apart from four named fields, translating to **canonically identical HBJSON**. Every
+blocker that remains is legal or procurement.
 ⚠ All measurements come from a **third-party build** of Trimble's SDK — see §6.
 
 This is the *so what* document. [`SDK_RUNTIME.md`](SDK_RUNTIME.md) is the reference (what the API is,
 what it exposes, how to call it); this one answers the questions a decision needs: **is it viable,
 where does it break, and what did we find that we did not know to look for?**
 
-Evidence: `planning/HEADLESS/RESULTS/HEADLESS-A_results.md` (the eight gates) and
-`planning/spikes/headless/a7_capability_probe.py` (the capability sweep, 16 corpus files).
+Evidence: `planning/HEADLESS/RESULTS/HEADLESS-A_results.md` (the eight gates),
+`planning/spikes/headless/a7_capability_probe.py` (the capability sweep, 16 corpus files), and
+`planning/HEADLESS/RESULTS/HEADLESS-B_results.md` (the nine identity gates).
 
 ---
 
@@ -23,7 +27,18 @@ classified faces, 239/239 windows with every host resolved, 99/99 thermal-bridge
 Marshal tables**, geometry matching to **0.0000 mm** on window transforms.
 
 And the ceiling is high. The entire 16-file, 230 MB corpus — including a **146 MB** model, ~13× the
-largest previously baselined — processes in **≈16 seconds total**.
+largest previously baselined — processes in **≈16 seconds total** (Spike B, emitting the full
+contract one process per model: **11.8 s**, slowest single model **2.5 s**, heaviest **717 MB**
+peak RSS).
+
+★ **Spike B closed the remaining question, which was not "can it read" but "is it the same read".**
+A headless capture matches the live SketchUp capture with **0 unexplained differences on 5/5
+models** — worst geometry deviation **0.000000 mm** — and the *untouched* POC translator then
+reproduces the acceptance table exactly (545/545 faces, 239/239 windows, 99/99 bridges) and emits
+**canonically identical HBJSON**. The four differences that do exist are `entity_id` (which the
+contract already calls session-scoped), record order, signed zero, and one field where the headless
+reader is deliberately **right**: `model.file_name`, because `Sketchup::Model#path` is the last-
+*saved* location and one live capture is stamped with a backup's misspelling.
 
 ⚠ **The extension route's entire runtime section evaporates on this path.** No Chromium 88, no
 Pyodide 0.24.1 ceiling, no 4 MB bridge, no 4–11 s UI freeze, no 15 MB install footprint
@@ -230,8 +245,18 @@ route. ⚠ It is also precisely what makes §3.1 dangerous, so the two facts bel
 
 ## 5. What this means for the product
 
-- **The pholio watcher model is technically clear.** A folder watcher plus this reader plus the
-  POC's verified translator is a working pipeline, at a few seconds per model.
+- **The pholio watcher model is technically clear, and now demonstrated.** A folder watcher plus
+  this reader plus the POC's *unmodified* translator is a working pipeline, at a few seconds per
+  model, producing HBJSON canonically identical to what SketchUp produces.
+- ⛔ **Change detection cannot hash the capture as it stands.** `entity_id` is scoped to the
+  **process**, not the model: reading another model first moves every id. Two captures of one
+  unchanged file are byte-identical only within a process history — otherwise identical only once
+  `entity_id` is excluded. Either exclude it, re-read in a fresh process, or drop it in contract v3.
+- **Concurrency is not a constraint on the host choice.** Two models open at once in one process,
+  two processes in parallel, and two threads in one process all work and all produce matching
+  captures. ⚠ One observation each, not a thread-safety proof.
+- **A reader that meets an unsupported designPH generation must refuse by name, and does**: 1.0.30
+  is refused with the stamp quoted, exit 2, nothing written.
 - **Admission control should be `SUModelGetStatistics`, not file size** (§2.2).
 - **"Never save" must be structural**, not procedural (§3.1).
 - **The privacy story improves**: the reader can strip `tracker_data` and embedded paths at the
@@ -248,8 +273,11 @@ the form.
 
 **Consequences:** licensing task **L1 (read the SDK EULA) cannot start** — the EULA ships inside the
 gated download. Nothing here may ship. And re-running is cheap by design:
-`planning/spikes/headless/run_gates.sh` plus `a7_capability_probe.py` reproduce every number in this
-document in under a minute.
+`planning/spikes/headless/run_gates.sh`, `run_gates_b.sh` and `a7_capability_probe.py` reproduce
+every number in this document in about two minutes.
+
+⚠ And a PASS here makes the **AGPL §13 reframing (L2) urgent rather than hypothetical**: a working
+server-side path is exactly what triggers it. L2 is actionable now; L1 is not.
 
 **A PASS on this evidence is a strong feasibility result and not a commercial green light.**
 
@@ -258,3 +286,7 @@ document in under a minute.
 ## Changelog
 
 - 2026-08-29 — written from Spike A's eight gates and the `a7` capability sweep over 16 corpus files.
+- 2026-08-29 — extended from **Spike B**: the headline now covers the identity result (0 unexplained
+  differences, canonically identical HBJSON), §5 gains the change-detection limit (`entity_id` is
+  process-scoped), the concurrency answers, and the unknown-version behaviour, and §6 notes that a
+  PASS makes the AGPL §13 question urgent.

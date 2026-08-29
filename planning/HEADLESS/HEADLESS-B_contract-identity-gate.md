@@ -1,10 +1,13 @@
 # HEADLESS-B (Spike B) — the contract-v2 identity gate: same model, same capture, same HBJSON
 
 DATE: 2026-08-28
-STATUS: ▶ **Unblocked; H0 revision pass DONE 2026-08-29 (§2.1 + §2.2). Nothing else has run.**
-Spike A passed ([`RESULTS/HEADLESS-A_results.md`](RESULTS/HEADLESS-A_results.md)) and pre-answered
-more of this plan than it anticipated — **H1 is effectively already closed** (§2.1). ⚠ Spike A ran
-on a **third-party SDK build**, so everything here inherits that provisional footing.
+STATUS: ✅ **COMPLETE — PASS. H1-H7 and H9 green, H8 recorded (2026-08-29).**
+Results: [`RESULTS/HEADLESS-B_results.md`](RESULTS/HEADLESS-B_results.md). A headless CPython
+process is a **drop-in capture device**: contract v2 out, **0 unexplained differences on 5/5**
+models against the live SketchUp captures, worst geometry deviation **0.000000 mm**, the untouched
+translator to the POC's own numbers (545/545 · 239/239 · 99/99), and **canonically identical
+HBJSON** 5/5. ⚠ Run on a **third-party SDK build**, so every number is feasibility-only evidence
+until it is re-run against Trimble's own.
 AUTHOR: Ed May (drafted by Claude)
 
 Context, rules, evidence base:
@@ -202,7 +205,7 @@ because it is needed.
 pre-answered, and three new constraints (never-save, base64 payload comparison, `SUFaceGetNumOpenings`
 cross-check) are folded into H2/H4.
 
-### H1 — Entity identity: the join key
+### H1 — Entity identity: the join key — ✅ **PASS** (883/883 join, 0 degenerate ids)
 
 Comparing two captures of one model needs a way to say *this face here is that face there*. The
 live captures carry the Ruby side's entity identifiers; whether the C SDK's IDs (`SUEntityGetID`,
@@ -230,7 +233,7 @@ persistent-id coverage.
   through a matcher whose own misses must be counted and reported — an unmatched entity is a
   finding, never silently dropped from the diff.
 
-### H2 — Contract-v2 emission
+### H2 — Contract-v2 emission — ✅ **PASS** (16/16 models, 6/6 writers refused)
 
 - **Method**: the headless collector emits contract v2 verbatim — same keys, same shapes, same
   units (m, world coordinates), `libraries` hoisted to model level, per-field size logging with
@@ -240,14 +243,14 @@ persistent-id coverage.
   `tracker_data` and embedded filesystem paths are **absent** — asserted by a check, not by
   intention.
 
-### H3 — Reconciliation against the offline baselines
+### H3 — Reconciliation against the offline baselines — ✅ **PASS** (14/14 gradeable; 2 have no baseline)
 
 - **Method**: `check_extraction.py`, unchanged, on all five headless captures.
 - **Right answer**: PASS on 5/5 — the same result the live captures earn. A firing check gets
   explained before it gets touched; if it fires on most of the five, suspect the *comparison*
   first (the reconciler's own history).
 
-### H4 — Identity against the live captures — claim (c)
+### H4 — Identity against the live captures — claim (c) — ✅ **PASS** (0 unexplained, 0.000000 mm)
 
 - **Method**: canonical field-by-field diff, headless vs live, per model. Compare in three strata,
   each with its own equality rule: **attribute payloads** byte-equal (Marshal blobs included);
@@ -260,7 +263,7 @@ persistent-id coverage.
   carry-over — or it is a defect, and defects get root-caused before this gate closes. ⚠ Grade all
   five; Adelphi passing alone counts for nothing.
 
-### H5 — The unchanged translator, to the POC's numbers
+### H5 — The unchanged translator, to the POC's numbers — ✅ **PASS** (545/545 · 239/239 · 99/99)
 
 - **Method**: `dph_translator` on the five headless captures, on native CPython.
 - **Right answer**: the acceptance table verbatim — 545/545 faces, 239/239 windows (every host by
@@ -268,7 +271,7 @@ persistent-id coverage.
   in bounds, and the per-model report (omissions, degeneracies, predicted honeybee verdicts)
   matching the live-capture runs.
 
-### H6 — HBJSON canonical equivalence
+### H6 — HBJSON canonical equivalence — ✅ **PASS** (5/5, and the check is shown to still fail)
 
 - **Method**: canonical compare of headless-capture HBJSON vs live-capture HBJSON per model, using
   the `byte_identity.py` canonicalisation (four `set`-ordered lists sorted; minted
@@ -277,7 +280,7 @@ persistent-id coverage.
 - **Right answer**: canonically identical, 5/5. Same-size-different-hash is the signature of
   ordering — read the *shape* of any failure before the failure.
 
-### H7 — Determinism — claim (d)
+### H7 — Determinism — claim (d) — ✅ **PASS** (16/16 byte-identical; scoped — see results §4)
 
 - **Method**: run the headless collector twice per model — from **two different CWDs with two
   different `--out` paths** (review item 8): this phase's own rules worry about embedded absolute
@@ -285,7 +288,7 @@ persistent-id coverage.
 - **Right answer**: byte-identical (nothing in the headless path mints ids or iterates a set — if
   the captures differ at all, find out what is nondeterministic before trusting anything above).
 
-### H8 — Cost, recorded not gated
+### H8 — Cost, recorded not gated — ✅ **RECORDED** (11.8 s corpus, 717 MB peak, concurrency works)
 
 Wall time and peak memory per model, because a server budget will eventually want them. Numbers
 only, no threshold.
@@ -299,7 +302,7 @@ tracking **unique entity count (~80–100k/s), not file size**. What is missing:
 - Bracket with **`2618 Lavoie` (146 MB)** and **`250708` (0.13 s)**, not Bluff Reach and Linde —
   the real spread is wider than this plan assumed.
 
-### H9 — Unknown designPH versions ⭐ NEW (§2.2)
+### H9 — Unknown designPH versions ⭐ NEW (§2.2) — ✅ **PASS** (1.0.30 refused by name, nothing written)
 
 The corpus now spans **designPH 1.0.30 → 2.4.0 BETA**, and 1.0.30 is structurally different.
 
@@ -391,3 +394,11 @@ before any Spike C work (hard rule 7).
   Four contract-v3 candidates recorded for the §9 process (north correction, lat/long, tag names,
   model GUID) plus one deliberately-open question (windows carry an unread `DesignPH_dict`).
   H8 gains per-process memory and concurrency, and re-brackets on Lavoie/250708.
+- 2026-08-29 — **EXECUTED. Verdict: PASS** (`RESULTS/HEADLESS-B_results.md`). H1-H7 and H9 green,
+  H8 recorded. Four findings that each produced a plausible wrong answer on a real model first:
+  the shipped `SURefType` puts `Face` at **11**, not the documented 9, and a host-face type check
+  against the doc order rejects **every** glued host; `-0.0 == 0.0` hides a real difference from
+  `==` and the check written to catch it could not fire; `entity_id` is **process-scoped**, which
+  made a concurrency check fail on two plain parallel processes; and the collector was not running
+  the version gate at all. Two new contract-v3 candidates (emit an exact zero unsigned; drop or
+  exclude `entity_id`) join §2.2's four.

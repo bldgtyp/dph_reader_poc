@@ -2,9 +2,11 @@
 
 DATE: 2026-08-28 · first written during HEADLESS Spike A
 STATUS: ✅ **Behaviourally verified on five real designPH models** (2026-08-29, Spike A: 545/545
-faces, 239/239 windows, 99/99 edges, 63/63 Marshal tables, 15/15 files opened). ⚠ **On a
-third-party SDK build, not Trimble's** — §1. Re-run against the official SDK before trusting it
-commercially.
+faces, 239/239 windows, 99/99 edges, 63/63 Marshal tables, 15/15 files opened) — and ✅ **a full
+contract-v2 capture reproduces those live captures with 0 unexplained differences** (Spike B, same
+day: worst geometry deviation **0.000000 mm**, canonically identical HBJSON 5/5, 16 models emitted
+in 11.8 s). §4e-§4g. ⚠ **On a third-party SDK build, not Trimble's** — §1. Re-run against the
+official SDK before trusting it commercially.
 
 Sits beside [`SKETCHUP_RUNTIME.md`](SKETCHUP_RUNTIME.md) (SketchUp as a *host*, the Ruby API, the
 `HtmlDialog`) and covers the other route: reading a `.skp` with **no SketchUp installed and no
@@ -127,10 +129,11 @@ compared across captures.
 | persistent lookup | `SUModelGetEntitiesByPersistentIDs` · `SUModelGetEntitiesOfTypeByPersistentIDs` · `SUModelGetInstancePathByPid` | a direct pid→entity index, useful for reconciling against a live capture |
 | version | `SUModelGetVersion` (enum `SUModelVersion`) · `SUModelGetGuid` · `SUModelGetStatistics` | ⚠ **`SUModelGetVersionString` does not exist** — the enum is the coarser answer available |
 
-## 4. ⛔ The three traps that make a C-SDK reader wrong while looking right
+## 4. ⛔ The five traps that make a C-SDK reader wrong while looking right
 
 Every one of these produced a **plausible number on a real model** before it was caught.
-`planning/HEADLESS/RESULTS/HEADLESS-A_results.md` §3 has the full accounting.
+`planning/HEADLESS/RESULTS/HEADLESS-A_results.md` §3 has the accounting for 4.1-4.4;
+`HEADLESS-B_results.md` for 4.5.
 
 ### 4.1 `SUEntityGetAttributeDictionary` is a get-or-CREATE
 
@@ -169,6 +172,22 @@ next model. `SUEntityGetType` returns `enum SURefType` directly and is not `SU_R
 
 ⚠ Harvesting the doxygen struct pages alone reports `SUInitialize`/`SUTerminate`/`SUGetAPIVersion`
 as absent — they are **free functions in `initialize.h`** and belong to no struct.
+
+### 4.5 A published *enum* is not the shipped enum either
+
+`SURefType` in the doxygen reference puts **`Face` at 9**. The API 13.0 header that ships with the
+framework inserts `Environment` and `Environments` at 8 and 9, so **`Face` is 11** and every member
+after `Edge` sits two higher.
+
+⛔ **A host-face type check written against the documented order rejects every glued host on every
+model** — 0 of 239 — which reads exactly like "the glue query does not work", and it is not. The
+symptom appears only in a reader that *checks the type*; Spike A's gates never did, so no Spike A
+result changes.
+
+✅ `sdk.py` now **parses both enums out of the framework's own headers** at load time and fills the
+module maps in place, so no importer can hold a stale copy, and calling code asks
+`sdk.ref_type("Face")` rather than writing a literal. Same rule as 4.4, one level down: check
+against the shipped headers, never against a doc page.
 
 ## 4a. ★ What the SDK gives that the Ruby API did not
 
@@ -238,6 +257,71 @@ process high-water mark and the whole sweep ran in one process, so the number sa
 here", not "Lavoie costs this". One process per model would answer it, and a server budget needs
 that. Recorded as unmeasured rather than estimated.
 
+## 4e. ★ A full contract-v2 capture, and what it costs (Spike B, 2026-08-29)
+
+Spike A proved the SDK *exposes* the data. Spike B emitted the frozen contract from it and compared
+against the live SketchUp captures: **0 unexplained differences on 5/5 models, worst geometry
+deviation 0.000000 mm**, and the untouched translator then produced **canonically identical
+HBJSON**. [`../planning/HEADLESS/RESULTS/HEADLESS-B_results.md`](../planning/HEADLESS/RESULTS/HEADLESS-B_results.md).
+
+**The structure that makes it affordable.** The contract's `counts` are **placement** counts
+(Adelphi's `faces_walked` is 1,023,558) while every attribute is a property of the **entity**.
+Reading attributes per placement does not finish. The shape that works:
+
+1. index every container once — the model's top level plus each component and group *definition* —
+   reading every attribute exactly once per entity;
+2. expand `faces_walked` and the untagged-tag histogram over the container **DAG** with memoisation
+   (a definition's children repeat once per placement of it), never over the placement tree;
+3. run a placement walk **pruned** to containers whose subtree holds tagged geometry, for the ~0.3 %
+   that needs world coordinates.
+
+⚠ **Cost tracks neither file size nor placements.** `2618 Lavoie` is 139 MB and reads in 2.49 s;
+`2414 Bluff Reach` is 10.3 MB with **2.5 M placements** and takes 1.73 s; `2536 Holmes` has **900**
+placements and takes 1.06 s. What it tracks is the **entity enumeration** — every face, edge and
+instance of every definition, each with an attribute-dictionary probe. Holmes carries 613 component
+definitions and ~206k edge entities.
+
+| | |
+|---|---|
+| whole 16-model corpus (230 MB) | **11.8 s**, one process per model |
+| slowest single model | **2.49 s** (`2618 Lavoie`, 139 MB) |
+| heaviest peak RSS | **717 MB** (same) |
+| two models open at once in one process | ✅ works, 761 MB peak |
+| two processes in parallel | ✅ works |
+| two threads in one process | ✅ works, no errors — ⚠ **one observation, not a thread-safety proof** |
+
+⚠ Per-model peak RSS **requires one process per model**. `ru_maxrss` never comes down, so the
+capability sweep's 851 MB is "the run peaked here", not "this model costs that".
+
+## 4f. ⚠ Two values that are not stable, and both mattered
+
+**`SUEntityGetID` is scoped to the PROCESS, not to the model.** Reading thirteen other models first
+moves every one of Adelphi's 128 ids and grows the capture by 384 bytes. Contract v2 already calls
+`entity_id` session-scoped and a debugging aid only, so this is the contract being right — but the
+operational consequence is concrete: ⛔ **a watcher that hashes captures to detect change must
+exclude `entity_id`, or re-read in a fresh process.** Two captures of one file are otherwise
+byte-identical, including across working directories and relative-vs-absolute path arguments.
+
+⚠ It is also what made a concurrency check report a mismatch on **two plain parallel processes**,
+where nothing concurrent was happening at all.
+
+**Signed zero.** The C arithmetic reaches an exact zero from below where Ruby reaches it from
+above — **72 coordinates across the corpus, always headless `-0.0` against live `0.0`**. `-0.0 ==
+0.0` is `True`, so field-by-field comparison absorbs it silently; `json.dumps` writes two different
+tokens, so hashes disagree with no locatable difference. A vertex at `-0.0 m` is the same vertex,
+and this is below every tolerance in the project — it matters only for hashing, which is exactly
+what change detection is.
+
+## 4g. The never-save invariant, made structural
+
+§4.1 means reading mutates the in-memory model, so hard rule 2 survives only because nothing writes
+the file back. An *intention* not to save is not a check. The reader therefore wraps the loaded
+library so it can only resolve symbols the binding **declared**, and the binding declares no writer:
+the binary exports `SUModelSaveToFile`, `SUModelSaveToFileWithVersion`,
+`SUEntityAddAttributeDictionary`, `SUAttributeDictionarySetValue`, `SUModelFixErrors` and
+`SUModelMergeCoplanarFaces`, and the read-only handle refuses **6 of 6**. Adding a writer becomes a
+visible edit to the signature table rather than an accident.
+
 ## 5. Practical hazards recorded in advance
 
 - **`lipo -info` the dylib first.** An x86_64-only build forces `arch -x86_64` plus an x86_64
@@ -256,3 +340,10 @@ that. Recorded as unmeasured rather than estimated.
 
 - 2026-08-28 — created during HEADLESS Spike A. Availability block recorded; API surface harvested
   and verified against all eight Spike-A gates; no binary executed.
+- 2026-08-29 — **Spike A ran: all eight gates PASS on a third-party build.** §3-§4c rewritten from
+  measurement; four traps recorded (§4.1-§4.4); §4d added from the 16-file capability sweep.
+- 2026-08-29 — **Spike B ran: a full contract-v2 capture reproduces the live SketchUp captures.**
+  Added §4.5 (the shipped `SURefType` puts `Face` at 11, not the documented 9 — a type check against
+  the doc order rejects **every** glued host), §4e (the container-index shape that makes a capture
+  affordable, and the measured cost/concurrency table), §4f (`SUEntityGetID` is process-scoped, and
+  signed zero differs 72 times), §4g (never-save enforced structurally: 6 of 6 writers refused).
