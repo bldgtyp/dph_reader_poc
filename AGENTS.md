@@ -83,7 +83,7 @@ had been *inferred* turned out to be wrong, and all four are now measured and re
 - **`face.area` is NET of glued window openings and `face.loops` never shows them.** So a loop
   polygon is gross and `face.area` is net, and **`glued_to` is the only thing that identifies a
   window host** — `loops.size > 1`, which Phase 1 installed as the fix for the `cuts_opening?` trap,
-  is true on only 2 of 16 real hosts.
+  is true on only **1 of 16** real Adelphi hosts (1 of 81 corpus-wide, remeasured 2026-08-28).
 - **The aperture rectangle is the rough opening via the WORLD transform.** A window definition has no
   top-level faces at all, and its largest face at any depth is the **glazing** — 41 % too small,
   plausibly.
@@ -169,7 +169,7 @@ rest of this repo:
 **Phase 1's gate closed PASS WITH CHANGES (2026-08-19).** Window host lookup is solved —
 `glued_to` resolves 46/46 — but `cuts_opening?` is a component-definition capability, not a fact
 about the host. ⚠ **And `face.loops.size > 1` is not the fix** (POC, 2026-08-21): a glued opening
-creates no loop, so it is true on only 2 of the 16 real hosts. **`glued_to` is the only host test.** **Shading geometry came back out of v1
+creates no loop, so it is true on only **1 of the 16** real Adelphi hosts. **`glued_to` is the only host test.** **Shading geometry came back out of v1
 scope**: no heuristic separates context from clutter, so v1 will ask the user which SketchUp tags
 are shading rather than guess (PRD §7.2).
 

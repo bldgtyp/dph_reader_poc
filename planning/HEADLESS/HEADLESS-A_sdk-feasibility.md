@@ -55,7 +55,7 @@ line. Nothing below runs until it passes.
 ### G1 — Does the SDK expose the glue relationship? ⚠ the decisive gate
 
 `glued_to` is **the only thing that identifies a window host** — `cuts_opening?` is a definition
-capability (true on all 46 Adelphi windows) and `loops.size > 1` is true on only 2 of 16 real hosts
+capability (true on all 46 Adelphi windows) and `loops.size > 1` is true on only **1 of 16** real Adelphi hosts (and 1 of 81 corpus-wide — remeasured 2026-08-28)
 ([`CONSTRAINTS.md`](../../00_Context/CONSTRAINTS.md) §4). If the C API cannot answer "which face is
 this instance glued to?", nothing else in this spike matters at full strength.
 

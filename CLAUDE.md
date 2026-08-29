@@ -94,7 +94,7 @@ these, check the file — all of it is measured, not guessed:
   faces has an inner loop. It means "this component is able to cut", not "this host has a hole".
   Trusting it would have holed every emitted `Face3D`. ⚠ **And the obvious fix —
   `face.loops.size > 1` — is also wrong**: a glued opening reduces `face.area` *without* creating a
-  loop, so it is true on only 2 of the 16 real hosts. `glued_to` is the only host test, and the same
+  loop, so it is true on only **1 of the 16** real Adelphi hosts — and 1 of 81 across all five captured models (remeasured 2026-08-28; the docs said 2). `glued_to` is the only host test, and the same
   quirk means `face.area` is **net** of windows while the loop polygon is **gross**.
 - **Walking `Sketchup::Face` is not walking the model.** designPH puts thermal bridges on
   **`Sketchup::Edge`** — PHPP measures them as lengths — so a face-only traversal drops 99 of 293

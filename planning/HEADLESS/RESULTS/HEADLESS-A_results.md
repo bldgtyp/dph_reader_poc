@@ -181,7 +181,8 @@ manufacturing a union that would merely look rigorous.
 2. **The `loops.size > 1` trap is worse than recorded.** `AGENTS.md`, `CLAUDE.md` and
    `CONSTRAINTS.md` §4 all say it is true on "**2 of 16**" real Adelphi hosts. Measured from the
    capture: **1 of 16** — and **1 of 81** across all five models' distinct hosts. The correction
-   makes the warning stronger, not weaker. *(Not yet propagated — see §6.)*
+   makes the warning stronger, not weaker. ✅ **Propagated 2026-08-28** to `AGENTS.md` (both
+   places), `CLAUDE.md` and `CONSTRAINTS.md` §4, plus this phase's own G1 text.
 
 ### 3.4 Smaller things worth keeping
 
@@ -229,13 +230,13 @@ Trimble's EULA, which nobody in this session has read, because it is inside the 
 
 ## 6. Follow-on work, explicitly not done
 
-1. **Propagate the `1 of 16` correction** (§3.3 item 2) into `AGENTS.md`, `CLAUDE.md` and
-   `00_Context/CONSTRAINTS.md` §4. Left undone deliberately: those three files state it identically,
-   and a single consistent edit is better made in one pass than mid-block.
-2. **Rewrite overview §2's "free developer download"** sentence. It is now false.
-3. **L1 remains unstartable.** L2 (AGPL §13) and L3 (designPH posture) are unaffected.
-4. **Spike B stays shut** (hard rule 7). Its H0 revision pass should fold in §3.1 — the identity gate
-   must key on the path-qualified `id`, never on `entity_id`.
+1. ✅ **Done** — the `1 of 16` correction is propagated, and overview §2's "free developer
+   download" sentence is marked superseded.
+2. **L1 remains unstartable.** L2 (AGPL §13) and L3 (designPH posture) are unaffected — and L2 is
+   arguably now the *more* urgent of the two, since it does not depend on the SDK at all.
+3. **Spike B stays shut** (hard rule 7). Its H0 revision pass must fold in §3.1 — the identity gate
+   has to key on the path-qualified `id`, never on `entity_id`.
+4. **Nothing here reopens the POC.** Contract stays frozen at v2; the POC's verdicts stand.
 
 ---
 
