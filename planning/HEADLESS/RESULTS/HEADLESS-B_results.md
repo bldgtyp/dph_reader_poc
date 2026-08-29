@@ -18,12 +18,12 @@ identical HBJSON** on all five.
 |---|---|
 | **H1** entity identity | ✅ **PASS** — **883/883** entities (545 faces · 99 edges · 239 windows) join on the path-qualified persistent id, 0 unmatched, 0 degenerate ids |
 | **H2** contract-v2 emission | ✅ **PASS** — **16/16** models emit contract v2, 0 shape or leakage problems; the read-only handle refuses **6/6** writers the binary exports |
-| **H3** reconciliation | ✅ **PASS** — **14/14** gradeable models under `check_extraction.py`, unchanged. ⚪ 2 have no offline baseline and are named as ungradeable |
+| **H3** reconciliation | ✅ **PASS** — **14/14** gradeable models under `check_extraction.py`, unchanged. ⚪ `2618 Lavoie` has no offline baseline and is named as ungradeable |
 | **H4** identity vs live — claim (c) | ✅ **PASS** — **0 unexplained differences on 5/5**; worst geometry deviation anywhere **0.000000 mm** |
 | **H5** the unchanged translator | ✅ **PASS** — **545/545 faces · 239/239 windows · 99/99 bridges**, TFA **368.476 / 1491.862 / 448.182 m²** |
 | **H6** HBJSON equivalence | ✅ **PASS** — **5/5** canonically identical, and the comparison is shown to still fail on a moved vertex, a reversed winding and a renamed construction |
 | **H7** determinism — claim (d) | ✅ **PASS** — **16/16** byte-identical across two CWDs and two `--out` paths. ⚠ Scoped: see §4 |
-| **H8** cost | ✅ **RECORDED** — slowest **2.5 s**, heaviest **717 MB** peak RSS, whole 230 MB corpus **11.8 s**; all three concurrency modes work |
+| **H8** cost | ✅ **RECORDED** (no threshold) — slowest **2.5 s**, heaviest **717 MB** peak RSS, whole 230 MB corpus **11.8 s**. Its concurrency *agreement* is separately **PASS**: 3/3 modes, 0 disagreements |
 | **H9** unknown versions ⭐ | ✅ **PASS** — designPH **1.0.30 refused by name**, exit 2, nothing written; **2.4.0 BETA** read with every key accounted for |
 
 ```
@@ -33,8 +33,10 @@ CORPUS TOTALS, headless captures through the unchanged translator
   models emitted     16 /  16        unexplained diffs      0
 ```
 
-Reproduce with `planning/spikes/headless/run_gates_b.sh` — one command, 83 s, one verdict line per
-gate (needs `_private/` staged and `cd poc && make venv` once).
+Reproduce with `planning/spikes/headless/run_gates_b.sh` — one command, ~60 s, one verdict line per
+gate (needs `_private/` staged and `cd poc && make venv` once). ⚠ The runner grades on each gate's
+**exit code**; the verdict lines are display. An earlier version graded the prose, which is the POC
+banner defect exactly — a gate that crashed after printing `PASS` reported green.
 
 ⚠ **The caveat that outranks everything below is not technical.** Every number here was produced
 on a **third-party re-host** of Trimble's SDK, because the official one is behind an unanswered
@@ -82,6 +84,16 @@ headless capture with one field set to the live capture's value — and H6 compa
 changed in the input, recorded per model.
 
 ## 3. ⚠ Signed zero: a real difference that `==` cannot see
+
+⚠ **And it cannot be fixed at the source, which was measured rather than assumed.** The obvious
+deeper fix is for the collector's `_round6` to return an unsigned zero, on the premise that
+`collector.rb` emits `0.0` there and the whole downstream apparatus exists to absorb one line.
+Measured across the five models: headless `-0.0` against live `0.0` on **72** coordinates — **but
+both readers emit `-0.0` on 12 more**. Normalising in the collector would take 72 disagreements to
+**12, not to 0**, would not remove the bucket or the H6 normalisation step, and would make the
+capture device deliberately differ from the reader it exists to reproduce. It stays a contract-v3
+*proposal* (§9), which is where a change of that kind belongs.
+
 
 `-0.0 == 0.0` is `True`, so an ordinary field-by-field comparison absorbs it in complete silence.
 `json.dumps` writes two different tokens, so it does not.
@@ -214,9 +226,10 @@ fires on healthy data is testing the wrong property.*
 4. **Thread safety is observed, not proven** (§5).
 5. **The 1.0.30 generation is refused, not supported.** Whether a future reader should *translate*
    it is a product question this gate does not answer.
-6. **Two of sixteen models cannot be graded** — `2618 Lavoie` and the 1.0.30 sample have no offline
-   baseline and no live capture. They prove the reader does not fall over; they prove nothing about
-   correctness.
+6. **`2618 Lavoie` cannot be graded** — no offline baseline and no live capture. It proves the
+   reader does not fall over at 146 MB; it proves nothing about correctness. (The 1.0.30 sample is
+   a different case: the gate **refuses** it, so H2 writes it to `quarantine/` and the later gates
+   never see it — the pipeline embodying H9's rule rather than contradicting it.)
 
 ## 9. Contract-v3 candidates — proposed, never applied
 
@@ -264,7 +277,8 @@ and that property has to survive whatever Spike C wraps around it.
 | `planning/spikes/headless/collector.py` | ✅ the headless contract-v2 collector |
 | `planning/spikes/headless/gate.py` | ✅ `gate.rb` ported; applied pre-walk and post-walk |
 | `b1`–`b9` gate scripts + `run_gates_b.sh` | ✅ one command, one verdict line per gate |
-| `sdk.py` | ✅ `read_only` handle; enums parsed from the shipped headers |
+| `sdk.py` | ✅ `read_only` handle; enums and one module loader parsed/shared from the shipped headers |
+| `harness.py` · `_gate_runner.sh` | ✅ the shared gate plumbing — `captured_models` (derived from what is staged, with a floor), `run_child`, and a runner that grades on **exit codes** |
 | `_private/out/captures/` | ✅ 16 contract-v2 captures (gitignored client data) |
 | [`00_Context/SDK_RUNTIME.md`](../../../00_Context/SDK_RUNTIME.md) | ✅ updated — the durable record |
 | [`00_Context/HEADLESS_VIABILITY.md`](../../../00_Context/HEADLESS_VIABILITY.md) | ✅ updated |
@@ -280,3 +294,13 @@ and that property has to survive whatever Spike C wraps around it.
   `-0.0 == 0.0` hides a real difference from `==` and the check written to catch it could not fire;
   `entity_id` is process-scoped, which made a concurrency check fail on two plain parallel
   processes; and the collector was not running the version gate at all.
+- 2026-08-29 — **cleanup pass** (four independent review agents over the diff). All nine gates
+  unchanged and still green; the suite is ~60 s. Three of the four reviews independently found *a
+  check that could not fail*: both shell runners graded the gates' prose and discarded their exit
+  codes; H8's concurrency agreement reached no verdict at all; H6's self-test ran on one model and
+  its skips did not fail. Also: H7's leg C vanished silently if a hardcoded filename was absent
+  (`0 == 0` inside a PASS), H3 reclassified the harness's failures by substring, H1's PASS was
+  one-directional, H5 excluded the whole `model` summary key rather than comparing the aligned
+  translation it had already built, H2 wrote a capture for a model the reader must refuse into the
+  directory the later gates glob, and `gated_capture` opened every file twice (a measured +46 % on
+  the CLI's default path). ⚠ One finding was measured and **not** applied — see §3.
