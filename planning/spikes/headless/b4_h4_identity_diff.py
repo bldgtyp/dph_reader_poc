@@ -63,6 +63,7 @@ from __future__ import annotations
 import argparse
 import importlib.util
 import json
+import math
 import re
 import sys
 from pathlib import Path
@@ -98,6 +99,13 @@ BUCKET_GENERATED_BY = "generated_by — a different capture device"
 BUCKET_FILE_NAME = (
     "model.file_name — the headless reader uses the file it opened; the live one inherited "
     "Sketchup::Model#path, the last-SAVED location"
+)
+
+BUCKET_SIGNED_ZERO = (
+    "signed zero — a coordinate the headless reader reached as `-0.0` and the live one as `0.0`. "
+    "Numerically the same value (`-0.0 == 0.0`), and below every tolerance in this project; it "
+    "matters only because JSON writes the two differently. A contract-v3 candidate: emit an exact "
+    "zero unsigned, and captures become comparable byte-for-byte across capture devices"
 )
 
 BUCKET_RECORD_ORDER = (
@@ -141,6 +149,30 @@ def numbers(value: Any) -> list[float]:
     if isinstance(value, list):
         return [n for item in value for n in numbers(item)]
     return []
+
+
+def signed_zero_disagreements(mine: Any, theirs: Any) -> int:
+    """How many numbers are equal but carry a different **sign of zero**.
+
+    ⚠ This exists because `-0.0 == 0.0` is `True` in Python, so an ordinary equality comparison —
+    including this file's own field-level `==` — absorbs the difference in complete silence. It is
+    not nothing: `json.dumps` writes `-0.0` and `0.0` as different tokens, so two captures that
+    compare equal field by field still hash differently, and the first symptom is H6 reporting five
+    canonical mismatches with no locatable difference.
+
+    Measured across the corpus: **72 disagreements, every one of them headless `-0.0` against live
+    `0.0`** — the sign of a value the C arithmetic reached from below and Ruby's from above, at the
+    1e-17 level. A vertex at `-0.0 m` is the same vertex, so this is a named difference and not a
+    defect; but a comparison that cannot see it is the wrong comparison.
+    """
+    a, b = numbers(mine), numbers(theirs)
+    if len(a) != len(b):
+        return 0
+    return sum(
+        1
+        for x, y in zip(a, b, strict=True)
+        if x == y == 0.0 and math.copysign(1.0, x) != math.copysign(1.0, y)
+    )
 
 
 def deviation(mine: Any, theirs: Any, scale: float) -> float | None:
@@ -261,6 +293,8 @@ def compare(headless: dict[str, Any], live: dict[str, Any]) -> dict[str, Any]:
         derived = DERIVED_FIELDS[section]
         for record_id in sorted(set(mine) & set(theirs)):
             a, b = mine[record_id], theirs[record_id]
+            for _ in range(signed_zero_disagreements(a, b)):
+                bucket(BUCKET_SIGNED_ZERO)
             for field in set(a) | set(b):
                 if a.get(field) == b.get(field):
                     continue
