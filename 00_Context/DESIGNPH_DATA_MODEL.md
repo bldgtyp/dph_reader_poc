@@ -3,8 +3,11 @@
 Investigation record, 2026-08-19. Sources of evidence are named throughout so every claim can be
 re-checked. Where something is **inferred** rather than observed, it says so.
 
-**Scope:** designPH 2.1.10 / 2.1.15 / 2.2.24 / 2.2.29 / 2.4.0 BETA, across 14 corpus models
-(Phase 0 baseline). Upstream is now 3.0 — re-verify before relying on any of this for 3.0.
+**Scope:** designPH **1.0.30** / 2.1.10 / 2.1.15 / 2.2.24 / 2.2.29 / 2.4.0 BETA, across **16**
+corpus models. §1–§12 rest on the Phase 0 offline baseline (14 models, 2.1.10 upward); **§13 is a
+2026-08-29 re-census read live through the SketchUp C SDK**, which added the 1.0.30 sample and a
+146 MB model and corrected three claims below. Upstream is now 3.0 — re-verify before relying on any
+of this for 3.0.
 
 > ⚠ **§6 is CONTESTED.** The `*Auto` vs `*ID` reading rule was refuted by the Phase 0 corpus
 > baseline. Do not implement it; read §6.2 and §6.3 first.
@@ -1102,3 +1105,109 @@ Two supported routes and one unsupported one.
   designPH's untagged marker. Whole value space decoded (§5.3.1).
 - ~~`TFA_rf` full value set~~ — at least `0`, `0.3`, `0.5`, `0.6`; confirmed not a two-state flag.
   *(That it is the PHPP TFA reduction factor is still inference, not observation.)*
+
+---
+
+## 13. Corpus-wide key census — SDK-read, 2026-08-29
+
+Everything above §12 was read by the **offline binary parser**, which sees the file's *history* — a
+union over live and deleted entities. This section re-reads the same corpus through the **SketchUp
+C SDK**, which sees only **live** state, on an **entity** basis, and adds two files the Phase 0
+baseline never had. Source: `planning/spikes/headless/a7_capability_probe.py` and the key census in
+`planning/HEADLESS/RESULTS/HEADLESS-A_results.md`.
+
+⚠ Live-vs-historical shows up immediately: Wellington's model-level `designPH_version` reads
+**`2.2.29`** here, while §2 records it as carrying *both* `2.1.10` and `2.2.29`. Both are right —
+the offline parser sees the superseded stamp, the SDK sees the current one. **A version stamp read
+live is not the same fact as a version stamp read offline.**
+
+### 13.1 ★ designPH 1.0.30 is real, readable, and structurally different
+
+`BLDGTYP - Sketchup Sample DesignPH ready Model.skp` was recorded in
+[`DESIGNPH_FILE_FORMATS.md`](DESIGNPH_FILE_FORMATS.md) §4.1 as **inconclusive by design** — the
+offline reader could not say whether it was a designPH model. **It is.** The SDK opens it (written
+by SketchUp 8.0.1) and reads:
+
+| | |
+|---|---|
+| `designPH_version` | **`1.0.30`** — a full generation below anything else in the corpus |
+| `DesignPH_dict` carriers | **437** entities |
+| `areaGroupID` | 316 faces — **42 with Int32 group 1** (TFA) and 274 with the String `'n'` |
+| ⭐ `Shader` | **57 faces** — a key that appears in **no 2.x model** |
+| `tempZoneAuto` / `tempZoneID` | 162 / 42 |
+| model-level | `Klima_Standort`, `klima_ID`, `designPH_version`, **`tfa_calc`**, `tfa_calc_ud` |
+
+Two things follow. **The `'n'` marker and the `areaGroupID`/`tempZone*` vocabulary predate 2.x
+unchanged** — the core storage convention is at least 1.0-era and has been stable across a major
+version boundary, which is mild evidence that a 2.x reader has a fair chance against 3.0.
+And **`Shader`** is a designPH 1.x concept for marking shading geometry that 2.x dropped; it is the
+only in-model shading marker anywhere in the corpus, and it is worth knowing about before any
+shading heuristic is designed (PRD §7.2, and `HEADLESS_VIABILITY.md` §4.1).
+
+⚠ **`tfa_calc`** (no `_ud`) is a model-level key not in the modern set, and `Klima_Standort` uses a
+capital K where 2.x writes `klima_ID`. Key *names* drift across major versions; a reader keyed on
+exact strings will lose data silently on an old file.
+
+### 13.2 The census — which keys, on which entity type, in how many of 16 models
+
+| key | models | entities | note |
+|---|---:|---:|---|
+| `face:tempZoneAuto` | **16/16** | 6085 | the only key present in every model |
+| `face:areaGroupID` | 14/16 | 8003 | |
+| `face:tempZoneID` | 14/16 | 7729 | |
+| `face:BackMaterial` · `face:Material` | 14/16 | 7815 | designPH stores material names in its own dict |
+| `face:assemblyIDAuto` | 13/16 | 2570 | |
+| `face:descNameAuto` | 13/16 | 3651 | |
+| `face:assemblyID` | 11/16 | 500 | |
+| `face:faceTypeAuto` | 11/16 | 2518 | |
+| `face:TFA_rf` | 10/16 | 97 | |
+| ⭐ `window:descNameAuto` | **9/16** | 363 | **windows carry a `DesignPH_dict` too** — §13.3 |
+| `face:descName` | 7/16 | 536 | the user override half of the pair |
+| `edge:areaGroupID` · `edge:assemblyID` · `edge:tempZoneID` | **4/16** | 282 each | thermal bridges — §13.4 |
+| `edge:descNameAuto` | 2/16 | 84 | |
+| `face:areaGroupAuto` | **3/16** | **19** | ⚠ rare, and the key whose *name* is the classic trap |
+| `face:descNameFreeze` · `window:descNameFreeze` | 1/16 | 59 / 57 | Wellington only |
+| ⭐ `face:Shader` | 1/16 | 57 | **designPH 1.0.30 only** — §13.1 |
+
+⚠ **`areaGroupAuto` carries only 19 entities in the whole corpus**, in 3 of 16 models — and losing
+them is exactly what the `areaGroupIDAuto` typo does (§6.5, POC-2 finding 50). A key can be
+load-bearing and nearly invisible at the same time; rarity is not unimportance.
+
+### 13.3 ⭐ Windows carry a `DesignPH_dict`, not only `dynamic_attributes`
+
+§9 establishes that a designPH window is a Dynamic Component and that its PH data lives in
+`dynamic_attributes`. That is still true and the collector is right to key on `frametypeid`. But the
+instance **also** carries a `DesignPH_dict`, holding `descNameAuto` (and `descNameFreeze` on
+Wellington) — on **9 of 16 models**, 363 instances.
+
+⚠ **Absent on Adelphi and Bluff Reach**, which is why the POC never met it. That is the **third**
+distinct thing those two models mask (`HEADLESS_VIABILITY.md` §3.4).
+
+The contract does not read it. Whether a window's `descNameAuto` carries anything the translator
+wants is **unresolved** — it is a name, and the contract already ships `designph_name`,
+`definition_name` and `instance_name`, so this may be a fourth redundant name or may be the
+authoritative one. **Open question, not a defect.**
+
+### 13.4 Thermal bridges live on two projects, not one
+
+Edges carrying `DesignPH_dict` appear on **4 of 16 files — which is 2 projects and their backups**:
+
+| project | tagged edges | in the capture set? |
+|---|---:|---|
+| `2414 Bluff Reach` (+ backup) | **99** each | yes — the POC's bridge evidence |
+| ⭐ `2536 Holmes` (+ backup) | **42** each | **no** |
+
+So the corpus's known thermal-bridge population is **141 edges across two projects**, not 99 across
+one. Holmes is also the only edge carrier with `edge:descNameAuto` (42), i.e. **named** bridges.
+This does not contradict the live captures — Holmes was never captured — but it means **a second,
+independent bridge model exists for validating any bridge work**, which matters because "confirmed
+on one model is confirmed on nothing" is this repo's most-repeated lesson.
+
+### 13.5 What this section changes
+
+- ✅ **`DESIGNPH_FILE_FORMATS.md` §4.1's "inconclusive"** on the pre-2014 sample is **resolved**: it
+  is designPH 1.0.30 with 437 tagged entities.
+- ✅ The documented designPH range extends **down to 1.0.30** (was 2.1.10).
+- ➕ New keys recorded: `Shader`, `tfa_calc`, `Klima_Standort`, and `DesignPH_dict` on windows.
+- ➕ Thermal-bridge evidence doubles (2 projects, 141 edges).
+- ⚠ Adelphi and Bluff Reach are now measured as masking **three** distinct structural facts.

@@ -197,6 +197,47 @@ entity set. Gates needing world coordinates use a placement walk **pruned** to s
 tagged geometry — ~0.3 % of the model. Measured cost with pruning: **≈3-4 s per model** for 3-11 MB
 files.
 
+## 4d. Measured capability sweep (2026-08-29, 16 corpus files)
+
+`planning/spikes/headless/a7_capability_probe.py`. The decision-shaped reading of all of this is
+[`HEADLESS_VIABILITY.md`](HEADLESS_VIABILITY.md); this is the reference table.
+
+| Capability | Call | Measured on the corpus |
+|---|---|---|
+| **File-format reach** | `SUModelCreateFromFileWithStatus` | **16/16 open**, written by SketchUp **8.0.1 → 26.1.188**, on one API-13.0 SDK |
+| **Newer-file warning** | `SUModelLoadStatus` | ⚠ `Success_MoreRecent` **never fired**, not even for a SketchUp 26 file on a 2025 SDK. Capture it; do not depend on it |
+| **Whole-model census** | `SUModelGetStatistics` | one call, no walk — Edge/Face/ComponentInstance/Group/Image/ComponentDefinition/Layer/Material. ⚠ **PLACEMENTS**, not entities |
+| **Model identity** | `SUModelGetGuid` | present on all 16; **stable across repeated reads** (3/3) but **differs between a file and its own `~` backup** — a per-*save* identity |
+| **Tags / layers** | `SUDrawingElementGetLayer` → `SULayerGetName` | readable per entity. Holmes carries **42** distinct tags on non-designPH faces; Linde **7** on designPH faces |
+| **Geolocation** | `SUModelIsGeoReferenced` → `SUModelGetLocation` → `SULocationGetLatLong` | real lat/long on **5 of 16**. ⚠ Adelphi reports `geo_referenced = true` with **(0, 0)** |
+| **Solar orientation** | `SUModelGetNorthCorrection` | non-zero on **7 of 16** (25.0007° · 44.8647° · 350.6339° · 359.6239° …). Unset reads `-0.0` |
+| **Display units** | `SUModelGetUnits` | Meters or Inches across the corpus — cosmetic; geometry is always internal inches |
+| **Write surface** | `SUModelSaveToFile`, `SUEntityAddAttributeDictionary`, `SUAttributeDictionarySetValue`, … | **6/6 present.** Never called. Bounds a future authoring path — and is why §4.1 is dangerous |
+
+### 4d.1 The cost model
+
+**Cost tracks unique entity count (~80–100k entities/second), not file size.** Whole corpus —
+16 files, 230 MB — in **≈16 s**.
+
+| model | MB | definitions | open | walk | total |
+|---|---:|---:|---:|---:|---:|
+| `2618 Lavoie` | **146.2** | 261 | 1.17 s | 1.44 s | **3.93 s** |
+| `2414 Bluff Reach` | 10.8 | 249 | 0.60 s | 1.28 s | 2.52 s |
+| `2536 Holmes` | 5.9 | **613** | 0.36 s | 0.78 s | 1.45 s |
+| `adelphi-designph` | 3.2 | 101 | 0.14 s | 0.10 s | 0.36 s |
+| `250708` | 4.2 | 101 | 0.07 s | 0.03 s | 0.13 s |
+
+⚠ **File size is a poor predictor**: Lavoie is 14× Bluff Reach's bytes for 1.6× the time (most of
+those bytes are 318 materials and their textures, which a designPH read never touches). Holmes is the
+opposite case — 5.9 MB and 2,124 face *placements*, but **613 definitions**, costing more than models
+with a thousand times its placement count. For admission control use `SUModelGetStatistics`, not
+`stat()`.
+
+⚠ **Peak RSS reached 851 MB across the sweep, and that is NOT a per-model figure.** `ru_maxrss` is a
+process high-water mark and the whole sweep ran in one process, so the number says "the run peaked
+here", not "Lavoie costs this". One process per model would answer it, and a server budget needs
+that. Recorded as unmeasured rather than estimated.
+
 ## 5. Practical hazards recorded in advance
 
 - **`lipo -info` the dylib first.** An x86_64-only build forces `arch -x86_64` plus an x86_64

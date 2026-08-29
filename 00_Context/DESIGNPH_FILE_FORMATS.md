@@ -250,9 +250,19 @@ model_dat = zipfile.ZipFile("model.skp").read("model.dat")
 **Pre-2014 `.skp` is not a zip** — it is a flat binary stream, and `zipfile` raises `BadZipFile`.
 `skp_attr_dump.py` falls back to reading the file directly, but **the opcodes below were only
 validated on 2014+ files**: run against `BLDGTYP - Sketchup Sample DesignPH ready Model.skp` the
-tool exits cleanly and finds *zero* dictionaries. That model genuinely has no designPH data, so
-this is not proof of a parser failure — but it is also not proof the old format uses the same
-encoding. **Treat a zero-dictionary result on a pre-2014 file as inconclusive, not as "no data".**
+tool exits cleanly and finds *zero* dictionaries.
+
+⛔ **RESOLVED 2026-08-29, and the resolution is the bad one: that is a parser failure.** Read
+through the SketchUp C SDK, the same file carries **437 `DesignPH_dict` entities** and a model-level
+`designPH_version` of **`1.0.30`** (`DESIGNPH_DATA_MODEL.md` §13.1). The earlier text guessed the
+opposite — *"that model genuinely has no designPH data"* — and that guess was wrong.
+
+**So the offline binary parser silently returns zero on pre-2014 files that are full of data.** The
+hedge that used to sit here ("treat a zero-dictionary result as inconclusive, not as no data") was
+right to exist and is now upgraded to a known limitation: **`skp_attr_dump.py` and friends are
+2014+-only.** ⚠ This is the failure mode hard rule 4 exists to prevent — a clean exit, a plausible
+answer, and no data — and it stood in this document for ten days because nothing could read the file
+to contradict it. The C SDK route is now the way to answer any pre-2014 question.
 
 ### 4.2 Attribute records inside `model.dat`
 
