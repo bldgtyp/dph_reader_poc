@@ -85,16 +85,6 @@ changed in the input, recorded per model.
 
 ## 3. ⚠ Signed zero: a real difference that `==` cannot see
 
-⚠ **And it cannot be fixed at the source, which was measured rather than assumed.** The obvious
-deeper fix is for the collector's `_round6` to return an unsigned zero, on the premise that
-`collector.rb` emits `0.0` there and the whole downstream apparatus exists to absorb one line.
-Measured across the five models: headless `-0.0` against live `0.0` on **72** coordinates — **but
-both readers emit `-0.0` on 12 more**. Normalising in the collector would take 72 disagreements to
-**12, not to 0**, would not remove the bucket or the H6 normalisation step, and would make the
-capture device deliberately differ from the reader it exists to reproduce. It stays a contract-v3
-*proposal* (§9), which is where a change of that kind belongs.
-
-
 `-0.0 == 0.0` is `True`, so an ordinary field-by-field comparison absorbs it in complete silence.
 `json.dumps` writes two different tokens, so it does not.
 
@@ -111,6 +101,15 @@ and it is called on a whole *record*, which is a dict — so the bucket reported
 models** and would have been quoted as "there are no signed-zero differences". Fixed, it reports
 1 + 51 + 4 + 12 + 4 = **72**, matching an independent count exactly. *A check that cannot fire is
 worse than no check, because it gets quoted as evidence.*
+
+⚠ **And it cannot be fixed at the source, which was measured rather than assumed.** The obvious
+deeper fix is for `_round6` to return an unsigned zero, on the premise that `collector.rb` emits
+`0.0` there and the whole downstream apparatus exists to absorb one line. Measured across the five
+models: headless `-0.0` against live `0.0` on **72** coordinates — **but both readers emit `-0.0` on
+12 more**. Normalising in the collector would take 72 disagreements to **12, not to 0**, would not
+remove the bucket or H6's normalisation step, and would make the capture device deliberately differ
+from the reader it exists to reproduce. It stays a contract-v3 *proposal* (§9), which is where a
+change of that kind belongs.
 
 ## 4. ⚠ What claim (d) actually covers — and it is narrower than "deterministic"
 
