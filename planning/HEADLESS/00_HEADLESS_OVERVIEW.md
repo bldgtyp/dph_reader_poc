@@ -113,8 +113,8 @@ Phase-specific additions:
 | Spike | Question | Plan |
 |---|---|---|
 | **A** | Does the SDK *expose* the data? (glue query, typed attrs, edges, Marshal tables, live-vs-historical, transforms, version coverage) | [`HEADLESS-A_sdk-feasibility.md`](HEADLESS-A_sdk-feasibility.md) |
-| **B** | Is a headless collector a *drop-in capture device*? (contract v2 out; identical to the five live captures; unchanged translator to the POC's numbers) | [`HEADLESS-B_contract-identity-gate.md`](HEADLESS-B_contract-identity-gate.md) — drafted pre-A, **its H0 revision pass runs first** |
-| **C** | Where does it run? Ranked: macOS worker (native, boring, likely winner) · Wine + Windows SDK in a Linux container (only if Linux-only hosting is a hard requirement; gate = the whole Spike-B suite passing inside the container) · on the user's machine inside the pholio watcher (deletes the server-platform question *and* the biggest privacy exposure — only the ~500 KB capture travels, never the 17 MB `.skp`; runs against pholio ADR-019 posture B, so it is a pholio ADR conversation, not just a spike) | Not planned. Sketch only, blocked on B |
+| **B** | Is a headless collector a *drop-in capture device*? (contract v2 out; identical to the five live captures; unchanged translator to the POC's numbers) | ✅ **PASS 2026-08-29 — yes.** [`RESULTS/HEADLESS-B_results.md`](RESULTS/HEADLESS-B_results.md); plan [`HEADLESS-B_contract-identity-gate.md`](HEADLESS-B_contract-identity-gate.md) |
+| **C** ▶ | Where does it run? Ranked: macOS worker (native, boring, likely winner) · Wine + Windows SDK in a Linux container (only if Linux-only hosting is a hard requirement; gate = the whole Spike-B suite passing inside the container) · on the user's machine inside the pholio watcher (deletes the server-platform question *and* the biggest privacy exposure — only the ~500 KB capture travels, never the 17 MB `.skp`; runs against pholio ADR-019 posture B, so it is a pholio ADR conversation, not just a spike) | Not planned. Sketch only — ▶ **unblocked by B**, whose §10 carries the go/no-go and the numbers |
 
 ## 6. Licensing checklist (alongside, no code, resolves nothing without counsel)
 
