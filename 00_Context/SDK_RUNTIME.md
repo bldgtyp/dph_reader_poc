@@ -1,8 +1,10 @@
 # The SketchUp C SDK as a runtime — what it is, what it exposes, and how to get it
 
 DATE: 2026-08-28 · first written during HEADLESS Spike A
-STATUS: **API surface documented and verified. No binary has been executed.** Every behavioural
-claim below is marked as untested; nothing here has been run.
+STATUS: ✅ **Behaviourally verified on five real designPH models** (2026-08-29, Spike A: 545/545
+faces, 239/239 windows, 99/99 edges, 63/63 Marshal tables, 15/15 files opened). ⚠ **On a
+third-party SDK build, not Trimble's** — §1. Re-run against the official SDK before trusting it
+commercially.
 
 Sits beside [`SKETCHUP_RUNTIME.md`](SKETCHUP_RUNTIME.md) (SketchUp as a *host*, the Ruby API, the
 `HtmlDialog`) and covers the other route: reading a `.skp` with **no SketchUp installed and no
@@ -39,8 +41,12 @@ header tree exists and downloads unauthenticated
 (`martijnberger/pyslapi` release 0.24, `sketchup_importer_0.24_macOS.zip`, 36 MB; built ~April 2025,
 Xcode 15.4, min macOS 11.7, claims files up to SketchUp 2025.1). **It is a personal redistribution
 of a proprietary EULA-gated binary, not an authorized mirror.** Recorded because it is the only
-route that works today; whether it may be used is a licensing decision, not a technical one, and
-`planning/HEADLESS/RESULTS/HEADLESS-A_results.md` §5 lays out the three options.
+route that works today; whether it may be used is a licensing decision, not a technical one.
+**Ed's call, 2026-08-28: both routes in parallel** — file Trimble's form, and meanwhile run Spike A's
+gates on this build as *feasibility-only* evidence. Everything in §3-§4c was measured that way and
+must be re-run against the official SDK before it is trusted commercially.
+⚠ The zip flattens the framework's `Frameworks` symlink, so `dlopen` fails on
+`@rpath/libCommonUnits.dylib` until `ln -s Versions/Current/Frameworks Frameworks` is restored.
 ⚠ The much-linked **RedHaloStudio fork is Windows-only** in every current release — its macOS
 assets are gone. The working macOS build is on the *upstream* repo.
 
@@ -62,7 +68,7 @@ the member table's right-hand cell; **free functions render as plain links on th
 `SUInitialize`, `SUTerminate` and `SUGetAPIVersion` live in `initialize.h` and belong to no struct —
 a struct-only scrape reports them ABSENT, which they are not.
 
-## 3. What the API exposes (documentation-level, all untested)
+## 3. What the API exposes — ✅ all of the following now measured, not inferred
 
 ### 3.1 ★ The glue relationship IS queryable — both directions
 
@@ -84,9 +90,13 @@ SUResult SUOpeningGetNumPoints(...);  SUResult SUOpeningGetPoints(...);
 ⚠ **`SUComponentInstanceGetAttachedInstances` points the other way** — things glued *to* this
 instance. The two names are one word apart and mean opposite things.
 
-⚠ **An opening is not proof of a hole.** `cuts_opening?` was true on all 46 Adelphi windows while
-only 1 of 16 hosts had an inner loop; nothing says the C layer is more honest. Assert that each
-opening's drawing element is one of the known windows before believing it.
+✅ **Measured: 239/239 windows across five real models resolve to a host face this way**, and the
+distinct-host counts match the live SketchUp captures exactly (16/14/17/18/16). The geometric
+fallback the plan held in reserve is not needed.
+
+✅ **And `SUFaceGetNumOpenings` corroborates independently** — > 0 on exactly those 81 host faces.
+Unlike `cuts_opening?` (true on all 46 Adelphi windows) and `loops.size > 1` (true on 1 of 81), this
+one is a real host test. See §4a.
 
 ### 3.2 ★ Both id flavours the contract needs
 
@@ -109,26 +119,83 @@ compared across captures.
 | open a file | `SUModelCreateFromFile` · `…WithStatus` · `SUModelCreateFromBuffer…` | the `WithStatus` variants report *how* a file was loaded |
 | typed attributes | `SUEntityGetAttributeDictionary(ies)` · `SUAttributeDictionaryGetValue`/`GetKeys`/`GetName` · `SUTypedValueGetType`/`GetString`/`GetInt32`/`GetDouble`/`GetBool` | the type tag is available, so hard rule 5 is satisfiable |
 | model-level dicts | `SUModelGetAttributeDictionary(ies)` · `SUModelGetNumAttributeDictionaries` | where designPH's Marshal tables live |
-| strings | `SUStringGetUTF8Length` + `SUStringGetUTF8` | ⚠ **length-aware — use these, never a `c_char_p`.** Marshal blobs contain `0x00` |
+| strings | `SUStringGetUTF8Length` + `SUStringGetUTF8` | length-aware; returns raw bytes. ⚠ But see §4b — designPH's tables are base64, so the NUL hazard this guards against does not arise on that path |
 | traversal | `SUModelGetEntities` · `SUEntitiesGet{Faces,Edges,Instances,Groups}` (+ `GetNum…`) · `SUComponentInstanceGetDefinition` · `SUComponentDefinitionGetEntities` · `SUGroupGetEntities` | ⚠ groups are a **separate** container from instances; a walk that handles only instances loses group-nested geometry |
 | geometry | `SUFaceGetOuterLoop` · `SUFaceGetNumInnerLoops`/`GetInnerLoops` · `SULoopGetVertices` · `SUVertexGetPosition` · `SUFaceGetNormal`/`GetPlane` | |
-| area | `SUFaceGetArea` · **`SUFaceGetAreaWithTransform`** | the second was not in the Spike-A plan and is what a scaled instance needs |
+| area | `SUFaceGetArea` · **`SUFaceGetAreaWithTransform`** | ⚠ **use the second** — the first takes no transform and is the LOCAL area. §4.3 |
 | transforms | `SUComponentInstanceGetTransform` · **`SUGroupGetTransform`** · `SUTransformationMultiply` | ⚠ two separate getters, same reason as traversal |
 | persistent lookup | `SUModelGetEntitiesByPersistentIDs` · `SUModelGetEntitiesOfTypeByPersistentIDs` · `SUModelGetInstancePathByPid` | a direct pid→entity index, useful for reconciling against a live capture |
 | version | `SUModelGetVersion` (enum `SUModelVersion`) · `SUModelGetGuid` · `SUModelGetStatistics` | ⚠ **`SUModelGetVersionString` does not exist** — the enum is the coarser answer available |
 
-## 4. ⚠ What the documentation cannot tell you
+## 4. ⛔ The three traps that make a C-SDK reader wrong while looking right
 
-Recorded so a later reader does not mistake §3's coverage for a feasibility verdict:
+Every one of these produced a **plausible number on a real model** before it was caught.
+`planning/HEADLESS/RESULTS/HEADLESS-A_results.md` §3 has the full accounting.
 
-- **Whether the SDK reads live state or historical state.** The whole reason to prefer it over the
-  binary parser (`DESIGNPH_FILE_FORMATS.md` §4.3) is untested.
-- **Whether `SUFaceGetArea` is net of glued openings** like Ruby's `face.area`, or gross. Either is
-  acceptable; not knowing is not. It differs on exactly 81 host faces across the five capture models.
-- **Whether the glue query returns the 239 hosts** on real designPH models.
-- **Whether the 15 corpus files open**, including the pre-2014 sample.
-- **Whether ctypes drives it at reasonable cost**, and whether the dylib is universal or x86_64-only
-  (the third-party build is universal2; a Trimble build has not been inspected).
+### 4.1 `SUEntityGetAttributeDictionary` is a get-or-CREATE
+
+Its own header: *"If a dictionary with the given name does not exist, one is added to the entity."*
+**A function named `Get` writes**, into `DesignPH_dict` — the namespace hard rule 2 forbids
+touching. Using its success as a tagged-test reports every entity as tagged (8037 faces instead of
+1441 on Adelphi).
+
+⛔ **A C-SDK reader mutates the in-memory model as a side effect of reading it.** Hard rule 2 holds
+only because nothing calls `SUModelSaveToFile`. **"Never save an opened model" is a load-bearing
+invariant for any headless service.**
+
+### 4.2 …and the read-only enumeration silently under-reports
+
+`SUEntityGetNumAttributeDictionaries` returns **1** while `SUEntityGetAttributeDictionaries` returns
+**`SU_ERROR_NONE` with count 0** and an unset handle, for dictionaries that exist with keys. Both
+report success. Cost: **118 of 446** tagged faces on Wellington, **731 of 1791** on Linde, **716 of
+1781** on 250708 — and **0 on Adelphi and Bluff Reach, which mask it entirely**.
+
+✅ **The only complete predicate is: ask by name, then require `num_keys > 0`.** An absent dictionary
+comes back freshly created and empty, so the key count separates real data from the side effect.
+
+### 4.3 `SUFaceGetArea` takes no transform, so it is the LOCAL area
+
+Ruby's collector calls `face.area(transform)` — the **world** area. On unscaled models the two agree
+and the difference is invisible; Adelphi has a scaled container and **14 of 82 faces came out wrong**
+by a constant 2.96× in the subtracted amount. ✅ Use **`SUFaceGetAreaWithTransform`** — the library's
+own function, not a local rescale.
+
+### 4.4 A published name is not a signature
+
+`SUModelGetVersion(model, int* major, int* minor, int* build)` — four arguments, not the enum getter
+its name suggests. The wrong declaration returned a *believable* 22 on Adelphi and segfaulted on the
+next model. `SUEntityGetType` returns `enum SURefType` directly and is not `SU_RESULT` at all.
+✅ `planning/spikes/headless/a3_header_audit.py` checks every declaration against the shipped headers.
+
+⚠ Harvesting the doxygen struct pages alone reports `SUInitialize`/`SUTerminate`/`SUGetAPIVersion`
+as absent — they are **free functions in `initialize.h`** and belong to no struct.
+
+## 4a. ★ What the SDK gives that the Ruby API did not
+
+- **`SUFaceGetNumOpenings` is a real host-side test.** It is > 0 on exactly the 81 distinct host
+  faces across the corpus, and `gross − net` equals the summed rough-opening areas precisely. Ruby's
+  nearest equivalent, `loops.size > 1`, is true on **1 of 81**. This is a second, independent host
+  check the Ruby collector never had. ⚠ Openings and inner loops are different: one Wellington face
+  has a genuine inner loop and no opening.
+- **`SUEntityGetPersistentID`**, so a headless capture can reproduce the collector's path-qualified
+  ids byte-for-byte.
+
+## 4b. designPH's Marshal tables are BASE64, not raw binary
+
+★ Every model-level table value begins `BAh` — base64 for Marshal's `\x04\x08` (hence the
+collector's `MARSHAL_PREFIX = "BAh"`). **The NUL-truncation hazard the whole G4 gate was designed
+around does not exist on this path**: the transport is ASCII with no NULs, so a `c_char_p` read
+would have worked. Keep the length-aware read anyway — it is right in general — but do not plan
+around a hazard that measurement retired. 63/63 tables decode across the corpus.
+
+## 4c. Performance: walk definitions, not placements
+
+Adelphi is 1441 tagged face entities behind **1,023,558 face placements**; Wellington's placement
+walk is 4,255,761 nodes and does not finish in Python. Enumerating each **definition** once is both
+the correct entity basis and ~1000× faster, and the two walks were verified to cover an identical
+entity set. Gates needing world coordinates use a placement walk **pruned** to subtrees containing
+tagged geometry — ~0.3 % of the model. Measured cost with pruning: **≈3-4 s per model** for 3-11 MB
+files.
 
 ## 5. Practical hazards recorded in advance
 

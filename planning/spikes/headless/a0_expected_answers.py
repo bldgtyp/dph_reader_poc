@@ -128,7 +128,7 @@ def load_captures(fixtures: Path) -> dict[str, dict[str, Any]]:
     for path in sorted(fixtures.glob(CAPTURE_GLOB)):
         if "PRE-FIX" in path.name:
             continue
-        data = json.loads(path.read_text())
+        data = json.loads(path.read_text(encoding="utf-8"))
         if data.get("contract_version") != 2:
             raise SystemExit(f"{path.name}: contract_version {data.get('contract_version')}, expected 2")
         out[path.name] = data
@@ -203,7 +203,7 @@ def baseline_classified(baseline_path: Path) -> dict[str, dict[str, Any]]:
     """
     if not baseline_path.exists():
         return {}
-    raw = json.loads(baseline_path.read_text())
+    raw = json.loads(baseline_path.read_text(encoding="utf-8"))
     out: dict[str, dict[str, Any]] = {}
     for name, entry in raw.items():
         face_keys = entry.get("face_keys") or {}

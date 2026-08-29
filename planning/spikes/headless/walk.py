@@ -250,10 +250,11 @@ class Walker:
         for inst in self._list("SUEntitiesGetNumInstances", "SUEntitiesGetInstances",
                                SUComponentInstanceRef, entities):
             pid = self.persistent_id(inst)
-            yield Node("window", inst, _entity(inst), path, pid, world, depth)
             t = SUTransformation()
             self.sdk.call("SUComponentInstanceGetTransform", inst, byref(t))
             child_world = compose(world, tuple(t.as_list()))
+            # The instance's own transform belongs to its world placement — see walk_pruned.
+            yield Node("window", inst, _entity(inst), path, pid, child_world, depth)
             definition = SUComponentDefinitionRef()
             self.sdk.call("SUComponentInstanceGetDefinition", inst, byref(definition))
             sub = SUEntitiesRef()
@@ -319,3 +320,140 @@ class Walker:
             for inst in self._list("SUEntitiesGetNumInstances", "SUEntitiesGetInstances",
                                    SUComponentInstanceRef, entities):
                 yield Node("window", inst, _entity(inst), (), self.persistent_id(inst), IDENTITY, 0)
+
+    # -- pruning: the placement walk is unusable without it ---------------
+
+    def container_of(self, node: Node) -> SUEntitiesRef | None:
+        """The `SUEntitiesRef` a container node encloses, or None if it is a leaf."""
+        from sdk import SUComponentDefinitionRef
+
+        sub = SUEntitiesRef()
+        if node.kind == "window":
+            definition = SUComponentDefinitionRef()
+            self.sdk.call("SUComponentInstanceGetDefinition", node.ref, byref(definition))
+            self.sdk.call("SUComponentDefinitionGetEntities", definition, byref(sub))
+            return sub
+        if node.kind == "group":
+            self.sdk.call("SUGroupGetEntities", node.ref, byref(sub))
+            return sub
+        return None
+
+    def interesting_containers(self, model, predicate) -> set[int]:
+        """Pointers of every entity-container whose SUBTREE holds something `predicate` accepts.
+
+        The placement walk visits one node per placement, which on real models means millions —
+        Adelphi 1,023,558 face placements, Wellington 4,255,761 nodes — and it simply does not
+        finish. But every gate that needs world coordinates only needs them for **tagged** geometry,
+        which is 0.3% of it. So: mark the containers that transitively hold tagged entities, and
+        refuse to descend into the other 99.7%.
+
+        This is a pruning of the traversal, not of the answer: a container is kept if *anything*
+        anywhere beneath it matches, so no tagged entity can be skipped. Cost of not doing it: the
+        first attempt at G6/G7 was killed after 15 minutes with no output.
+        """
+        from sdk import SUComponentDefinitionRef
+
+        # container ptr -> (directly_interesting, [child container ptrs])
+        graph: dict[int, tuple[bool, list[int]]] = {}
+        containers: dict[int, SUEntitiesRef] = {}
+
+        top = SUEntitiesRef()
+        self.sdk.call("SUModelGetEntities", model, byref(top))
+        pending = [top]
+        for count_fn, get_fn in (
+            ("SUModelGetNumComponentDefinitions", "SUModelGetComponentDefinitions"),
+            ("SUModelGetNumGroupDefinitions", "SUModelGetGroupDefinitions"),
+        ):
+            for definition in self.sdk.get_list(count_fn, get_fn, SUComponentDefinitionRef, model):
+                sub = SUEntitiesRef()
+                self.sdk.call("SUComponentDefinitionGetEntities", definition, byref(sub))
+                pending.append(sub)
+
+        for entities in pending:
+            key = entities.ptr
+            if key in graph:
+                continue
+            containers[key] = entities
+            direct = False
+            for face in self._list("SUEntitiesGetNumFaces", "SUEntitiesGetFaces", SUFaceRef, entities):
+                if predicate("face", face):
+                    direct = True
+                    break
+            if not direct:
+                for edge in self._list("SUEntitiesGetNumEdges", "SUEntitiesGetEdges", SUEdgeRef,
+                                       entities, extra=(False,)):
+                    if predicate("edge", edge):
+                        direct = True
+                        break
+            children: list[int] = []
+            for inst in self._list("SUEntitiesGetNumInstances", "SUEntitiesGetInstances",
+                                   SUComponentInstanceRef, entities):
+                if predicate("window", inst):
+                    direct = True
+                definition = SUComponentDefinitionRef()
+                self.sdk.call("SUComponentInstanceGetDefinition", inst, byref(definition))
+                sub = SUEntitiesRef()
+                self.sdk.call("SUComponentDefinitionGetEntities", definition, byref(sub))
+                children.append(sub.ptr)
+            for group in self._list("SUEntitiesGetNumGroups", "SUEntitiesGetGroups", SUGroupRef, entities):
+                sub = SUEntitiesRef()
+                self.sdk.call("SUGroupGetEntities", group, byref(sub))
+                children.append(sub.ptr)
+            graph[key] = (direct, children)
+
+        # Propagate upward to a fixpoint. Cycles are impossible in SketchUp's definition graph, but
+        # the fixpoint loop tolerates one rather than recursing forever if the model is malformed.
+        keep = {k for k, (direct, _) in graph.items() if direct}
+        changed = True
+        while changed:
+            changed = False
+            for key, (_, children) in graph.items():
+                if key not in keep and any(c in keep for c in children):
+                    keep.add(key)
+                    changed = True
+        return keep
+
+    def walk_pruned(self, model, keep: set[int], path: tuple[int, ...] = (),
+                    world: tuple[float, ...] = IDENTITY, entities: SUEntitiesRef | None = None,
+                    depth: int = 0) -> Iterator[Node]:
+        """`walk()`, but refusing to descend into containers `keep` does not name."""
+        from sdk import SUComponentDefinitionRef
+
+        if entities is None:
+            entities = SUEntitiesRef()
+            self.sdk.call("SUModelGetEntities", model, byref(entities))
+
+        for face in self._list("SUEntitiesGetNumFaces", "SUEntitiesGetFaces", SUFaceRef, entities):
+            yield Node("face", face, _entity(face), path, self.persistent_id(face), world, depth)
+        for edge in self._list("SUEntitiesGetNumEdges", "SUEntitiesGetEdges", SUEdgeRef,
+                               entities, extra=(False,)):
+            yield Node("edge", edge, _entity(edge), path, self.persistent_id(edge), world, depth)
+
+        for inst in self._list("SUEntitiesGetNumInstances", "SUEntitiesGetInstances",
+                               SUComponentInstanceRef, entities):
+            pid = self.persistent_id(inst)
+            t = SUTransformation()
+            self.sdk.call("SUComponentInstanceGetTransform", inst, byref(t))
+            # ⚠ The instance's OWN transform is part of its world placement. Yielding the parent's
+            # world here instead put the windows 29.5 m out on Bluff Reach — the same
+            # parent-relative-vs-world trap that cost the POC all 46 Adelphi windows
+            # (`CONSTRAINTS.md` §4), reproduced exactly, in the reader written to avoid it.
+            own_world = compose(world, tuple(t.as_list()))
+            yield Node("window", inst, _entity(inst), path, pid, own_world, depth)
+            definition = SUComponentDefinitionRef()
+            self.sdk.call("SUComponentInstanceGetDefinition", inst, byref(definition))
+            sub = SUEntitiesRef()
+            self.sdk.call("SUComponentDefinitionGetEntities", definition, byref(sub))
+            if sub.ptr in keep:
+                yield from self.walk_pruned(model, keep, path + (pid,), own_world, sub, depth + 1)
+
+        for group in self._list("SUEntitiesGetNumGroups", "SUEntitiesGetGroups", SUGroupRef, entities):
+            sub = SUEntitiesRef()
+            self.sdk.call("SUGroupGetEntities", group, byref(sub))
+            if sub.ptr not in keep:
+                continue
+            pid = self.persistent_id(group)
+            t = SUTransformation()
+            self.sdk.call("SUGroupGetTransform", group, byref(t))
+            yield from self.walk_pruned(model, keep, path + (pid,),
+                                        compose(world, tuple(t.as_list())), sub, depth + 1)

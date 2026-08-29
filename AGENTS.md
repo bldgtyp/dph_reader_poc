@@ -24,10 +24,26 @@ assumption, for counsel — `planning/POC/00_POC_OVERVIEW.md` §2.3).
 **▶ One follow-on phase is ACTIVE (opened 2026-08-28):
 [`planning/HEADLESS/`](planning/HEADLESS/.index.md)** — can a headless service read the `.skp` via
 the **SketchUp C SDK**, with no SketchUp installed and no SketchUp seat, and emit the POC's
-contract-v2 capture? (The passive-scrape question behind pholio's Dropbox-watcher model.) Spike A
-(SDK feasibility) is scoped; Spike B (identity gate against the five live captures) is drafted and
-blocked on A; nothing has run yet. The phase reuses the POC's assets as ground truth and reopens
-none of its verdicts — the contract stays frozen at v2 and the POC status table below stands.
+contract-v2 capture? (The passive-scrape question behind pholio's Dropbox-watcher model.)
+
+✅ **Spike A PASSED 2026-08-29** ([results](planning/HEADLESS/RESULTS/HEADLESS-A_results.md)). A
+headless CPython process, no SketchUp anywhere, reproduces the live Ruby collector's reads exactly
+on all five real models — **545/545 classified faces · 239/239 windows, every host via the glue
+query · 99/99 thermal-bridge edges · 63/63 Marshal tables · 15/15 files opened**, at ≈3-4 s per
+model, with world geometry matching to **0.0000 mm** on windows and 0.0008 mm on face vertices.
+Durable record: [`00_Context/SDK_RUNTIME.md`](00_Context/SDK_RUNTIME.md). Spike B is unblocked but
+not started.
+
+⛔ **Two caveats, and the first is not technical.** Trimble's C SDK is **no longer a public
+download** — it sits behind a "Request Access" form with no reported turnaround — so Spike A ran on
+a third-party re-host of the binary, on Ed's explicit call, as *feasibility-only* evidence to be
+re-run against the official SDK; **licensing task L1 (read the SDK EULA) cannot start**, because
+the EULA ships inside the download nobody can get. And ⛔ **a C-SDK reader mutates the in-memory
+model as a side effect of reading it** (`SUEntityGetAttributeDictionary` is a get-or-CREATE), so
+*never save an opened model* is a load-bearing invariant.
+
+The phase reuses the POC's assets as ground truth and reopens none of its verdicts — the contract
+stays frozen at v2 and the POC status table below stands.
 
 > ### ▶ **The successor project is [`pholio`](/Users/em/Dropbox/bldgtyp-00/00_PH_Tools/pholio) (2026-08-21).**
 > The strategy retrospective that closed this POC concluded the right product is **not** a
@@ -275,6 +291,7 @@ DESIGNPH-PLUS_PRD.md          product requirements
   DESIGNPH_FILE_FORMATS.md    CSV libraries, ID conventions, .skm, .skp binary layout
   PPP_EXPORT.md               the .ppp: the licence line, and why we stop there
   SKETCHUP_RUNTIME.md         Ruby 2.7, HtmlDialog's Chromium, threading, the bridge
+  SDK_RUNTIME.md              SketchUp WITHOUT SketchUp: the C SDK, its access gate, its traps
   PYODIDE_RUNTIME.md          the version ceiling, installing by unpack, performance
   HONEYBEE_STACK.md           the 8 wheels, API traps, PHX's reachable write path
   DATA_CONTRACTS.md           the translation spine: designPH face → JSON → HBJSON
@@ -282,7 +299,7 @@ DESIGNPH-PLUS_PRD.md          product requirements
   tools/skp_decode_tables.py  offline Marshal-table decoder (uv run)
 planning/                     phased spike plan, one doc per phase
   POC/                        ★ the completed POC — phased plans + RESULTS/ (incl. the retro, ★ the V-0 starting point)
-  HEADLESS/                   ▶ the ACTIVE phase — headless C-SDK reader spikes (see its .index.md)
+  HEADLESS/                   ▶ the ACTIVE phase — headless C-SDK reader spikes (Spike A ✅ PASS)
   RESULTS/                    spike phase results — write before starting the next phase
   spikes/                     throwaway spike code, kept regardless of outcome
                               (headless/ holds the HEADLESS phase's scripts; its _private/ is gitignored client-data scratch)

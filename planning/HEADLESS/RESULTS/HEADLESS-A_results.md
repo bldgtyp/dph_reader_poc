@@ -1,247 +1,249 @@
 # HEADLESS-A results — SketchUp C SDK feasibility
 
-DATE: 2026-08-28
-STATUS: ⛔ **BLOCKED at G0 — PARTIAL PASS on the half that documentation can answer**
+DATE: 2026-08-28 (gates re-run 2026-08-29)
+STATUS: ✅ **PASS — every gate green.** ⚠ On a third-party SDK build; see §1 and §7
 PLAN: [`../HEADLESS-A_sdk-feasibility.md`](../HEADLESS-A_sdk-feasibility.md)
 
 ---
 
 ## Verdict
 
-| | |
+**A headless CPython process, with no SketchUp installed and no SketchUp seat, reproduces the live
+Ruby collector's reads of five real designPH models exactly — in under 4 seconds each.**
+
+| Gate | Result |
 |---|---|
-| **G0 boot** | ⛔ **BLOCKED — the SDK binary cannot be obtained.** Not a technical failure; a procurement one |
-| **G1 glue** — *the decisive gate* | ✅ **YES at the documentation level.** Both directions of the glue query are published. ⚠ Behaviour untested |
-| **G2 typed attributes** | ✅ API present · ⚠ behaviour untested |
-| **G3 edges at depth** | ✅ API present · ⚠ behaviour untested |
-| **G4 Marshal tables** | ✅ API present, incl. the length-aware string reads the NUL-truncation rule demands · ⚠ untested |
-| **G5 live vs historical** | ⛔ **Documentation cannot answer this.** Only opening a real model can |
-| **G6 net-vs-gross** | ✅ API present · ⛔ the *semantics* question is behavioural and stays open |
-| **G7 world transforms** | ✅ API present · ⚠ behaviour untested |
-| **G8 version coverage** | ✅ API present · ⛔ whether all 15 corpus files open is behavioural |
+| **G0** boot | ✅ **PASS** — framework loads on arm64, API **13.0**, all 8 gate symbol sets exported, **15/15** corpus models open |
+| **G1** glue — *decisive* | ✅ **PASS** — **239/239** windows resolve to a host face, every one via `SUComponentInstanceGetAttachedToDrawingElements`. Distinct-host counts match the captures exactly (16/14/17/18/16). **No geometric fallback needed** |
+| **G2** typed attributes | ✅ **PASS** — type tags preserved; `areaGroupID` reads as String `'n'`, ints as Int32; coalesce works on both key generations |
+| **G3** edges at depth | ✅ **PASS** — **99/99** thermal-bridge edges on Bluff Reach, 0 on the other four, on an entity basis |
+| **G4** Marshal tables | ✅ **PASS** — **63/63** tables, 68,587 decoded bytes, all parsed by the unmodified Phase-1 reader |
+| **G5** live vs historical | ✅ **PASS** — entity counts match the live captures on all five (1441/576/1791/1781/446) |
+| **G6** area semantics | ✅ **ANSWERED** — `SUFaceGetAreaWithTransform` equals live `face.area(transform)` on **545/545** faces. Net of glued openings, exactly like Ruby |
+| **G7** world transforms | ✅ **PASS** — worst window translation delta **0.0000 mm**, worst face vertex delta **0.0008 mm** (the collector's own 6-dp rounding), 0 unmatched |
 
-**Spike A does not close.** Its gate cannot be evaluated, so **hard rule 7 keeps Spike B shut**.
-What *did* close is worth having, and it changes the phase's premise:
+```
+CORPUS TOTALS, headless vs the five live SketchUp captures
+  classified faces  545 / 545        windows          239 / 239
+  thermal bridges    99 /  99        glued hosts      239 / 239
+  Marshal tables     63 /  63        models opened     15 /  15
+```
 
-> **The SketchUp C SDK is no longer a free public download.** The overview's §2 sentence — "It is a
-> free developer download from Trimble" — **is now false**, and the route the whole phase is built
-> on has an access gate in front of it that no agent work can open.
+Reproduce with `planning/spikes/headless/run_gates.sh` (needs `_private/` staged — §6).
+
+⚠ **One premise of this phase is dead, and it is not a technical one:** the SketchUp C SDK is **no
+longer a public download**. Everything above ran on a third-party re-host. §1 and §7.
 
 ---
 
-## 1. The block, measured
+## 1. ⛔ The SDK is behind an access gate
 
-Verified **live on 2026-08-28**, in Ed's own Chrome, signed in on his Trimble developer account
-(the header showed "Ed M."): `https://extensions.sketchup.com/sketchup-sdk` renders a holding page.
+Verified live 2026-08-28 in Ed's Chrome, signed in on his Trimble developer account (header showed
+"Ed M."): `https://extensions.sketchup.com/sketchup-sdk` renders a holding page —
 
 > "Thank you for your interest in the SketchUp and LayOut C SDKs. They are not available for public
-> download at this time. Please fill out the form to request access to the SDK or add yourself to a
-> list of users we will contact when the SDKs are available again."
+> download at this time. Please fill out the form to request access…"
 
-with a single **Request Access** button and no download list at all.
+— with a **Request Access** button and no download list. The overview's §2 claim, "a free developer
+download from Trimble", **is false** and is marked superseded.
 
-Corroborating evidence, in the order it was found:
+Corroboration: the Extension Warehouse SPA carries a **`SDK_HOLDING_PAGE`** feature toggle, on in
+production; `GET /api/developers/sdkBuilds` returns **401** and `getSdkBuildUrl(id)` issues a
+**signed** URL, so no static URL ever existed to guess; Wayback's `SDK_Mac_2019-0-752.zip`-shaped
+entries are all ~1 KB SPA stubs; Homebrew, conda-forge, vcpkg and Debian carry nothing. Forum
+thread *"SketchUp C SDK 2026 macOS unavailable"* (346672) — ⚠ *reported, not verified here* — says
+it went behind the form before 2026-05-05 and that developers report **no response as of
+2026-08-16**.
 
-1. The Extension Warehouse SPA bundle carries a feature toggle named **`SDK_HOLDING_PAGE`** and two
-   mutually exclusive components — a real `ClientSdk`/`ArchivedVersions` download table, and the
-   holding page above. The toggle is **on in production**.
-2. The download API exists and is authenticated: `GET /api/developers/sdkBuilds` → **401
-   Unauthorized**; `getSdkBuildUrl(id)` returns a signed `download_url`. So there is no static URL
-   to guess — the download was always dynamically signed.
-3. ⚠ **`extensions.sketchup.com` returns HTTP 200 with an identical 4387-byte SPA shell for every
-   path, including nonsense ones.** Status-code probing against that host proves nothing. This
-   invalidated the first round of URL probing in this session and is recorded so it is not repeated.
-   (The doxygen docs under `/developers/sketchup_c_api/` are a *different* handler and do serve real
-   content — 50 KB pages — which is how §2 below was possible.)
-4. Wayback CDX holds URLs shaped `SDK_Mac_2019-0-752.zip`, so that naming convention was real — but
-   every archived "capture" is the same ~1 KB SPA stub, not a file. Even the 2015 Drupal-era page
-   only ever exposed a login-gated link. **There is no evidence a fetchable static SDK URL ever
-   existed.**
-5. No package manager ships it: Homebrew, conda-forge, vcpkg and Debian all return nothing
-   (checked via their own APIs, not by search-result summary).
+⚠ **`extensions.sketchup.com` returns HTTP 200 with an identical 4387-byte SPA shell for every
+path, valid or nonsense.** Status-code probing there proves nothing; check response size. (The
+doxygen tree under `/developers/sketchup_c_api/` is a different handler and serves real pages —
+which is what let §2 close before any binary existed.)
 
-**Timeline and turnaround**, from the SketchUp developer forum thread *"SketchUp C SDK 2026 macOS
-unavailable"* (`forums.sketchup.com/t/.../346672`) — ⚠ *reported, not independently verified here*:
-the SDK went down before 2026-05-05; SketchUp staff described it as maintenance plus a new access
-form intended to "understand more about who is using the C SDK and how they are using it"; the form
-worked by 2026-05-14; **as of 2026-08-16 multiple developers report no response at all**, and there
-is no stated SLA and no confirmation email.
+**Ed's decision (2026-08-28): both routes in parallel** — file Trimble's form, and meanwhile run the
+gates against `martijnberger/pyslapi` release 0.24's `SketchUpAPI.framework` (universal2 arm64 +
+x86_64, built ~April 2025, Xcode 15.4, min macOS 11.7), **for time-boxed laptop feasibility only**.
+⚠ That is a personal redistribution of a proprietary EULA-gated binary. **No EULA ships in the zip,
+so licensing task L1 remains unstartable**, and every number in this document must be re-run against
+the official SDK before it is trusted.
 
-### 1.1 The one route that exists, and why it is Ed's call and not an agent's
+⚠ The much-linked **RedHaloStudio fork is Windows-only** in every current release. The plan's
+demotion of pyslapi ("pinned to an older SDK generation") is **half wrong**: the *binding* is stale,
+but the *framework* is API 13.0 — newer than every corpus writer.
 
-A **universal2 (arm64 + x86_64) `SketchUpAPI.framework`, with the complete public C header tree**,
-is downloadable today, unauthenticated, from a third-party GitHub release: the Blender importer
-`martijnberger/pyslapi`, release `0.24` (`sketchup_importer_0.24_macOS.zip`, 36 MB, HTTP 200). The
-framework was built ~April 2025 (Xcode 15.4, `LSMinimumSystemVersion 11.7`) against a
-SketchUp-2024/2025-generation API, and the repo claims it reads files up to SketchUp 2025.1.
+⚠ The zip flattens the framework's `Frameworks` symlink, so `dlopen` fails on
+`@rpath/libCommonUnits.dylib` until `ln -s Versions/Current/Frameworks Frameworks` is restored.
 
-⚠ **It is a personal re-host of Trimble's proprietary, EULA-gated binary — not an authorized
-mirror.** Using it would mean acquiring, for a commercial service, the exact artifact Trimble has
-just put behind an access form, from someone who has no right to redistribute it. That is the
-opposite posture from the one this phase chose the SDK route *for*
-(overview §2: "for a commercial service, Trimble's blessed API is the right legal posture"), and it
-runs directly into licensing task **L1**, which cannot even start because the EULA ships with the
-download nobody can get.
+## 2. The API surface, closed before the binary arrived
 
-**This is a licensing decision, so it is not made here.** See §5.
+The reference docs stayed public. `a1_capi_surface.py` harvests all **1231 published `SU*`
+functions** across 89 struct pages plus the free-function headers and checks them per gate: **every
+function every gate needs is present**, including both directions of the glue query. That answered
+G1 at the documentation level while the binary was still blocked.
 
-⚠ Note the RedHaloStudio fork everyone links first is **Windows-only** in every current release —
-its macOS assets are gone. The working macOS build is on the *upstream* repo it forked from. The
-plan's §2 demotion of pyslapi ("pinned to an older SDK generation") is **half wrong**: the *binding*
-is stale, but the *framework it ships* is a 2025-generation build, newer than every corpus writer.
+⚠ **Two doxygen layouts, and harvesting one alone lies.** Struct members render in the member
+table's right cell; **free functions render as plain links on the header page**. `SUInitialize`,
+`SUTerminate` and `SUGetAPIVersion` live in `initialize.h` and belong to no struct — a struct-only
+scrape reports them absent, which they are not.
 
----
+## 3. ★ Four traps, each of which produced a plausible wrong answer
 
-## 2. What was closed anyway: the API surface (G1's decisive half)
+These are the spike's most transferable output. Every one passed on at least one real model first.
 
-**The reference documentation is still fully public** even though the binary is not, at
-`https://extensions.sketchup.com/developers/sketchup_c_api/sketchup/`. That constrains the "does the
-API *expose* this at all?" half of six gates without any binary — this repo's own rule (*ask what
-the data already on hand constrains before booking the run you cannot get*) pointed at a blocker.
+### 3.1 A published name is not a signature — and the wrong one segfaults *later*
 
-`planning/spikes/headless/a1_capi_surface.py` harvests all **1231 published `SU*` functions** across
-89 struct pages plus the free-function headers, and checks them per gate. **Every function every
-gate needs is present.** The ones that matter:
+`SUModelGetVersion` sits beside an enum called `SUModelVersion` and reads overwhelmingly like an
+enum getter. It is not:
 
-| Gate | Function | Note |
-|---|---|---|
-| **G1** | `SUComponentInstanceGetAttachedToDrawingElements` + `…GetNum…` | ✅ **the decisive one — instance → host.** `@since SketchUp 2018, API 6.0` |
-| **G1** | `SUComponentInstanceGetAttachedInstances` | ⚠ points the *other* way; do not confuse the two |
-| **G1** | `SUFaceGetOpenings` / `SUFaceGetNumOpenings` / `SUOpeningGetPoints` | the host-side cross-check exists too |
-| **G3** | `SUEntityGetPersistentID` **and** `SUEntityGetID` | ★ **both id flavours the contract emits** — see §3 |
-| **G4** | `SUStringGetUTF8Length` + `SUStringGetUTF8` | the length-aware read the NUL-truncation rule requires |
-| **G6** | `SUFaceGetArea`, `SUFaceGetAreaWithTransform` | the second was not in the plan and matters for scaled instances |
-| **G7** | `SUComponentInstanceGetTransform`, `SUGroupGetTransform`, `SUTransformationMultiply` | ⚠ `SUGroupGetTransform` is separate — a face-and-instance-only walk would miss group nesting |
-| **G0** | `SUInitialize`, `SUTerminate`, `SUGetAPIVersion` | free functions in `initialize.h`, **not** on any struct |
+```c
+SU_RESULT SUModelGetVersion(SUModelRef model, int* major, int* minor, int* build);
+```
 
-⚠ **`SUModelGetVersionString` does not exist.** G8 must read `SUModelGetVersion` (an enum,
-`SUModelVersion`) and/or `SUModelGetStatistics`; the plan's "record `SUModelGetVersion` or
-equivalent" is satisfied, but only by the enum, which is a coarser answer than a version string.
+The inferred two-arg version wrote through two out-pointers that were never passed. On **Adelphi it
+survived and returned 22** — which is even the correct major version for its writer — and
+**segfaulted on the next model**. A second declaration was silently wrong and not yet called:
+`SUEntityGetType` returns `enum SURefType` **directly**, and is not `SU_RESULT` at all.
 
-⚠ **Stated limit on this evidence.** This is a *documentation* answer. It says the names exist and
-what they claim to do. It says nothing about G5 (live vs historical), nothing about G6's actual
-net-or-gross semantics, and nothing about whether the glue query returns 239 hosts on real designPH
-models. Those four remain exactly as open as they were.
+✅ `a3_header_audit.py` now parses the shipped headers and checks every ctypes declaration's arity.
+67 declarations, 1137 header functions, 0 mismatches. It runs first in `run_gates.sh`.
 
----
+### 3.2 ⛔ `SUEntityGetAttributeDictionary` is a get-or-**CREATE**
 
-## 3. What the fixtures were made to say (and two things the docs had wrong)
+Its own header: *"If a dictionary with the given name does not exist, **one is added to the
+entity**."* A function named `Get` writes — and it writes into `DesignPH_dict`, the exact namespace
+**hard rule 2** forbids touching.
 
-`planning/spikes/headless/a0_expected_answers.py` re-derives every gate's *expected* answer from the
-five live captures and the offline baseline, because the plan states them in prose from memory. It
-paid for itself immediately.
+Using its success as the tagged-test reported **every** entity as tagged: 8037 faces instead of
+1441 on Adelphi, 16718 edges instead of 0, 1343 instances instead of 46. Those were not
+counting-basis errors; they were counts of entities the test had just modified.
 
-**Confirmed unchanged**: 545 classified faces · 239 windows · 99 edges · `glued_to` resolves
-**239/239** · Bluff Reach is the only model with edges · Linde carries 25 `layer_table_*` · the
-version stamps (2.1.15 / 2.2.24 / 2.2.29).
+⛔ **A C-SDK reader therefore mutates the in-memory model as a side effect of reading it.** Hard rule
+2 survives only because nothing ever calls `SUModelSaveToFile`. **"Never save an opened model" is a
+load-bearing invariant for any headless service, not a convention.**
 
-### 3.1 ★ The counting basis is now mechanical instead of remembered
+### 3.3 …and the read-only alternative silently under-reports
 
-The contract-v2 `id` is built by `collector.rb:597` as
-`([kind] + path_of_persistent_ids + [own_persistent_id]).join("_")`, and
-`test_collector.rb:221` pins the two-placement case to `%w[face_50_51 face_52_51]`. Therefore:
+The obvious fix is to enumerate instead. Measured, the two halves of the SDK's own two-call idiom
+**disagree with each other**: `SUEntityGetNumAttributeDictionaries` returns **1** while
+`SUEntityGetAttributeDictionaries` returns **`SU_ERROR_NONE` with count 0** and an unset handle —
+for dictionaries that demonstrably exist with keys. Both calls report success.
 
-- **the whole path-qualified id is the PLACEMENT identity**
-- **the leaf segment is the ENTITY identity** (`persistent_id`)
+| model | tagged faces lost to enumeration |
+|---|---|
+| 2523 Wellington | **118 of 446** (26 %) |
+| 250703 Linde | **731 of 1791** (41 %) |
+| 250708 | **716 of 1781** (40 %) |
+| Adelphi, Bluff Reach | 0 — **they mask it completely** |
 
-So `counts.faces_tagged` is a **placements** count, and deduplicating on the leaf gives the entity
-count — **2466 → 1791** on Linde and **2456 → 1781** on 250708, where 1781 is the offline baseline
-exactly. ⚠ **Adelphi and Bluff Reach mask this completely** (nothing in either is placed twice),
-which is why the POC's reconciler could conflate the two for as long as it did. The distinction no
-longer needs to be remembered — it is one `rsplit`.
+✅ **The only complete predicate is: ask by name, then require `num_keys > 0`.** A genuinely absent
+dictionary comes back freshly created and empty, so the key count is what separates real data from
+the SDK's own side effect. With it, all five models match the captures exactly.
 
-⚠ **And `entity_id` in the contract is `entity.entityID`, which is session-local — not
-`persistent_id`.** It must never be compared across captures. **Spike B's identity gate has to key
-on the path-qualified `id`, not on `entity_id`.** ★ `SUEntityGetPersistentID` exists in the C API,
-so a headless reader *can* reproduce the same ids — which is the single most encouraging thing found
-this session for Spike B.
+### 3.4 `SUFaceGetArea` takes no transform — so it is the LOCAL area
 
-### 3.2 The reconciliation that is exact on all five models
+The Ruby collector calls `face.area(transform)` (`collector.rb:377`), i.e. the **world** area.
+`SUFaceGetArea` has no transform parameter. On four models this is invisible; on **Adelphi it put 14
+of 82 faces wrong**, by a constant ratio of 2.96× in the subtracted amount — the signature of a
+scale on a containing group.
 
-The one claim well defined on both sides:
+✅ The fix was **the library's own `SUFaceGetAreaWithTransform`**, not a local rescale — the repo's
+"do not re-implement half of a library's rule" rule, applied. Adelphi's 14 went to **0**, and the
+corpus went to **545/545**.
 
-> live classified **faces** + live tagged **edges** == offline integer-valued area groups
+## 4. What G6 actually answered
 
-Bluff Reach **194 + 99 = 293** ✓ · Wellington 103 ✓ · Linde 74 ✓ · 250708 92 ✓ · Adelphi 82 ✓.
-The offline number is **entity-type-blind** (the binary parser sees records, not entity classes),
-which is precisely why the POC's reconciler read it as a 576-vs-194 contradiction. There is **no
-well-defined offline "total tagged entities"** to compare against — the baseline reports totals per
-*key*, not a union over entities — so `a0` deliberately reports only the exact figure rather than
-manufacturing a union that would merely look rigorous.
+- **`SUFaceGetAreaWithTransform` == live SketchUp `face.area(transform)` on 545/545 classified
+  faces.** Net of glued window openings, exactly like Ruby. The G6 "record verbatim" decision costs
+  nothing, because verbatim is already identical.
+- The net-vs-gross gap appears on exactly the faces where **`SUFaceGetNumOpenings > 0`**, and the
+  amount subtracted equals the summed **rough-opening** areas (`lenx × leny`) precisely.
+- ★ **`SUFaceGetNumOpenings` is a reliable host-side cross-check in the C API** — 14/17/18/16/16,
+  matching the 81 distinct host faces. This is the thing Ruby could not offer: `loops.size > 1` is
+  true on **1 of 81**. The C SDK gives a second, independent host test the Ruby collector never had.
+- ⚠ One Wellington face has `SUFaceGetArea` ≠ its own outer loop **without** any opening — a genuine
+  modelled inner loop. Openings and inner loops are different things; do not conflate them.
 
-### 3.3 Two documentation defects found and fixed
+## 5. G4: the hazard this gate was built around does not exist
 
-1. ⛔ **`00_Context/DATA_CONTRACTS.md` §2.1 carried the wrong coalesce key.** It read
-   `dict["areaGroupID"] || dict["areaGroupIDAuto"]`. **`areaGroupIDAuto` does not exist.** The real
-   fallback is `areaGroupAuto` — no `ID` — while `assemblyIDAuto` keeps it. This is the *same typo*
-   the Phase 3 spike shipped (POC-2 finding 50), still standing in the foundation layer ten days
-   after the POC recorded it. Adelphi masks it; Linde is the model that needs both keys (66 + 8 =
-   its 74 classified faces). **Fixed**, with all three pairs spelled out and the asymmetry called
-   out explicitly.
-2. **The `loops.size > 1` trap is worse than recorded.** `AGENTS.md`, `CLAUDE.md` and
-   `CONSTRAINTS.md` §4 all say it is true on "**2 of 16**" real Adelphi hosts. Measured from the
-   capture: **1 of 16** — and **1 of 81** across all five models' distinct hosts. The correction
-   makes the warning stronger, not weaker. ✅ **Propagated 2026-08-28** to `AGENTS.md` (both
-   places), `CLAUDE.md` and `CONSTRAINTS.md` §4, plus this phase's own G1 text.
+★ **designPH stores its Marshal tables as BASE64 text, not raw binary.** Every value begins `BAh`,
+which is simply base64 for Marshal's `\x04\x08` (hence the collector's `MARSHAL_PREFIX = "BAh"`).
 
-### 3.4 Smaller things worth keeping
+The plan and the pre-spike review's item 3 were built around **NUL truncation** — a `c_char_p` read
+stopping at the first `0x00` and yielding a partially decoded table that still parses, i.e. a false
+PASS. On this path it **cannot happen**: the transport is ASCII with no NULs at all. `c_char_p`
+would have worked. The length-aware read stays because it is right in general and nothing about
+designPH's storage is guaranteed, but the named hazard is retired.
 
-- **Wellington's capture self-reports `model.file_name` as `"2523 Weiilington"`** — the *backup's*
-  misspelling, and the only one of the five without the `_COPY` suffix — while its data matches the
-  Wellington row. This is `Sketchup::Model#path`'s documented untrustworthiness (CONSTRAINTS §9)
-  surfacing in the name field. **Spike B must key captures on the file, never on `model.file_name`.**
-- **New corpus material exists that postdates the Phase-0 baseline**: `2618 {BP} Lavoie
-  Certification.skp` + backup, **146 MB each**, saved 2026-08-28 — ~13× the largest baselined model.
-  It can grade nothing (no baseline, no live capture) but it is the natural scale probe once a
-  reader exists.
+⚠ **And the NUL check itself had to be demoted, which is the more interesting half.** It fired on
+Linde's `tfa_calc_ud`, and the data was fine: 396 base64 characters decoding to exactly 297 bytes
+and parsing to 4 complete rows, while 95-byte payloads elsewhere *do* contain NULs. NUL presence is
+content-dependent, not integrity-dependent — the check was testing the wrong property. The proof
+that survives is the chain: exact base64 length → clean decode → Marshal magic → complete strict
+parse → table set matching the live capture. **63/63 tables, all five models.**
 
----
+## 6. Method notes worth keeping
 
-## 4. Deliverables produced
+- **Walk definitions once, not placements.** Adelphi is 1441 tagged face entities behind
+  **1,023,558 face placements**; Wellington's placement walk is 4,255,761 nodes. The first counting
+  attempt did not finish. Enumerating each definition once is both the correct **entity basis** and
+  ~1000× faster — and the two walks were verified to cover an *identical* entity set (15838 faces,
+  zero difference) before the switch.
+- **Gates that need world coordinates still need the placement walk**, so it is pruned to subtrees
+  that actually contain tagged geometry — 0.3 % of the model. Pruning the traversal, never the answer.
+- ⚠ **The parent-relative transform trap reproduced itself inside the reader written to avoid it.**
+  `walk_pruned` first yielded each window carrying its *parent's* world transform: Bluff Reach's
+  windows landed **29.5 m** out. Same bug, same shape, new codebase.
+- **`read_text()` without an encoding** blew up on Linde's capture (locale codec vs UTF-8).
+- The captures' `model.file_name` is unreliable — Wellington's reports the backup's misspelling
+  ("2523 Weiilington"). **Key on the file.** Tested and rejected the hypothesis that the capture
+  came from the backup: the backup scores *worse* (197 vs 328).
+- **New corpus material postdates the Phase-0 baseline**: `2618 {BP} Lavoie Certification.skp` +
+  backup, **146 MB each** — ~13× the largest baselined model, the natural scale probe. Not staged;
+  it has no baseline and no live capture, so it can grade nothing.
+
+## 7. What is NOT established
+
+1. ⛔ **Nothing here was run on Trimble's own SDK.** Every number is from a third-party build. The
+   suite is one command, so re-running it is cheap once the official SDK arrives.
+2. ⛔ **L1 (read the SDK EULA) remains unstartable** — the EULA ships inside the gated download.
+3. **Performance is laptop-scale only**: ≈3-4 s per model over five models of 3-11 MB. The 146 MB
+   Lavoie model is untested, and so is any concurrency.
+4. **This is not a contract-v2 capture.** Spike A compared *counts and geometry*; emitting the
+   actual JSON, byte-for-byte comparable, is Spike B.
+5. **Windows/Linux is untested** — Spike C.
+
+## 8. Deliverables
 
 | Artifact | State |
 |---|---|
-| `planning/spikes/headless/a0_expected_answers.py` | ✅ runs; all 5 cross-checks agree |
-| `planning/spikes/headless/a1_capi_surface.py` | ✅ runs; all gates covered, verdict `ALL GATES COVERED` |
-| `planning/spikes/headless/_private/` + `MANIFEST.md` | ✅ staged — 15 corpus `.skp` **copies**, the 5 live captures, the offline baselines. Gitignored, hash-manifested |
-| `00_Context/DATA_CONTRACTS.md` §2.1 | ✅ corrected (§3.3 item 1) |
-| G0–G8 behavioural results | ⛔ not produced — blocked |
-| SDK EULA (task L1) | ⛔ not obtainable — it ships with the download |
+| `planning/spikes/headless/run_gates.sh` | ✅ one command, one verdict line per gate |
+| `sdk.py` · `walk.py` | ✅ ctypes binding + entity/placement/pruned walks |
+| `a0`–`a6` gate scripts | ✅ all green |
+| `_private/` + `MANIFEST.md` | ✅ 15 corpus copies, 5 captures, baselines, SDK — gitignored |
+| [`00_Context/SDK_RUNTIME.md`](../../../00_Context/SDK_RUNTIME.md) | ✅ the durable record |
+| `00_Context/DATA_CONTRACTS.md` §2.1 | ✅ corrected — `areaGroupIDAuto` does not exist |
+| SDK EULA (L1) | ⛔ not obtainable |
 
----
+## 9. Recommendation
 
-## 5. ⛔ The decision this spike cannot make
+**Spike A passes; Spike B (contract-v2 identity gate) is unblocked** under hard rule 7. Its H0
+revision pass must fold in:
 
-Spike A cannot proceed without a macOS SDK binary, and there are exactly three ways to get one.
-**All three are Ed's call**, and two of them are not technical:
+- the identity gate keys on the **path-qualified `id`**, never on `entity_id` (session-local);
+- `SUEntityGetPersistentID` exists, so the ids are reproducible byte-for-byte;
+- the **get-or-create** side effect and the **never save** invariant;
+- `SUFaceGetAreaWithTransform`, not `SUFaceGetArea`;
+- `SUFaceGetNumOpenings` as a second host test the Ruby collector never had.
 
-| Route | What it costs | What it risks |
-|---|---|---|
-| **A. Request Access** via Trimble's form | Ed fills one form; then waiting | Public reports say **no response in ~3 months**. Correct posture, unknown and possibly infinite latency |
-| **B. Third-party re-host** (`martijnberger/pyslapi` 0.24 macOS) | One download, works today, universal2 + full headers | ⚠ **Personal redistribution of a proprietary EULA-gated binary.** Directly contradicts why the SDK route was chosen. L1 cannot be satisfied — the EULA is inside the download nobody can get |
-| **C. Abandon the SDK premise** | — | Reopens the overview §2 decision. The alternatives it ruled out (grow the offline binary parser; a from-scratch `.skp` parser such as npm `openskp`) were ruled out on *technical* grounds that still stand, but "the blessed API" is no longer freely available, which was half the argument |
-
-⚠ **Route B for a `.skp`-reading *spike on the laptop* and route B for a *shipped commercial
-service* are different questions with different answers.** A time-boxed feasibility spike against a
-third-party build might be defensible where shipping on it is not — but that is a judgment about
-Trimble's EULA, which nobody in this session has read, because it is inside the gated download.
-
----
-
-## 6. Follow-on work, explicitly not done
-
-1. ✅ **Done** — the `1 of 16` correction is propagated, and overview §2's "free developer
-   download" sentence is marked superseded.
-2. **L1 remains unstartable.** L2 (AGPL §13) and L3 (designPH posture) are unaffected — and L2 is
-   arguably now the *more* urgent of the two, since it does not depend on the SDK at all.
-3. **Spike B stays shut** (hard rule 7). Its H0 revision pass must fold in §3.1 — the identity gate
-   has to key on the path-qualified `id`, never on `entity_id`.
-4. **Nothing here reopens the POC.** Contract stays frozen at v2; the POC's verdicts stand.
+⚠ **But B should not be treated as de-risked by A's numbers until the official SDK is in hand.**
+A's evidence is provisional in exactly one way, and it is the way that matters commercially.
 
 ---
 
 ## Changelog
 
-- 2026-08-28 — written. Spike A blocked at G0 on SDK availability; the documentation-answerable half
-  of G1–G4/G6–G8 closed; expected-answer derivation and evidence staging completed; two
-  documentation defects found, one fixed.
+- 2026-08-28 — written. Spike A blocked at G0 on SDK availability; documentation-answerable half of
+  G1–G4/G6–G8 closed; expected-answer derivation and evidence staging completed.
+- 2026-08-29 — **rewritten: all eight gates PASS.** Ed authorised the parallel route (file Trimble's
+  form; run the gates on a third-party build meanwhile). Four traps recorded, each of which produced
+  a plausible wrong answer on a real model first.

@@ -107,7 +107,7 @@ def main() -> int:
     ap.add_argument("--only", default=None, help="run one corpus file only")
     args = ap.parse_args()
 
-    expected = json.loads(args.expected.read_text())["models"]
+    expected = json.loads(args.expected.read_text(encoding="utf-8"))["models"]
     sdk = SDK()
     walker = Walker(sdk)
     results: dict[str, dict] = {}

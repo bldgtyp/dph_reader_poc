@@ -222,6 +222,13 @@ class SDK:
             ("SUTypedValueGetBool", [SUTypedValueRef, POINTER(ctypes.c_bool)], c_int32),
             # faces / loops / geometry
             ("SUFaceGetArea", [SUFaceRef, POINTER(c_double)], c_int32),
+            # ⚠ SUFaceGetArea takes NO transform, so it returns the face's LOCAL area. The Ruby
+            # collector calls `face.area(transform)` (collector.rb:377), i.e. the WORLD area. On an
+            # unscaled model the two agree and the difference is invisible; on a scaled one they do
+            # not. This is the C analogue of the Ruby call — use it, rather than scaling the local
+            # value locally, which would be re-implementing half of the library's rule.
+            ("SUFaceGetAreaWithTransform",
+             [SUFaceRef, POINTER(SUTransformation), POINTER(c_double)], c_int32),
             ("SUFaceGetOuterLoop", [SUFaceRef, POINTER(SULoopRef)], c_int32),
             ("SUFaceGetNumInnerLoops", [SUFaceRef, POINTER(c_size_t)], c_int32),
             ("SUFaceGetInnerLoops", [SUFaceRef, c_size_t, POINTER(SULoopRef), POINTER(c_size_t)], c_int32),

@@ -255,6 +255,39 @@ these, check the file — all of it is measured, not guessed:
   CI run for as long as the harness existed**. The first write-up guessed "the fixture has no
   omissions to show"; checking made the finding worse, not better. Assert on the DOM, and prove the
   new assertion fails on the old code before trusting it.
+- **In the SketchUp C SDK, `SUEntityGetAttributeDictionary` is a get-or-CREATE, and the read-only
+  alternative silently under-reports.** The header says so plainly — "if a dictionary with the given
+  name does not exist, one is added to the entity" — so a function named `Get` **writes into
+  `DesignPH_dict`**, the namespace hard rule 2 forbids. Using its success as a tagged-test reports
+  every entity as tagged: 8037 faces instead of 1441 on Adelphi. And the obvious fix is also wrong:
+  `SUEntityGetNumAttributeDictionaries` returns 1 while `SUEntityGetAttributeDictionaries` returns
+  `SU_ERROR_NONE` **with count 0** for dictionaries that exist with keys — losing 118 of 446 tagged
+  faces on Wellington, 731 of 1791 on Linde, 716 of 1781 on 250708, and **0 on Adelphi and Bluff
+  Reach, which mask it entirely**. The only complete predicate is ask-by-name then `num_keys > 0`.
+  ⛔ Consequence: **a C-SDK reader mutates the in-memory model as a side effect of reading it**, so
+  "never save an opened model" is a load-bearing invariant, not a convention.
+- **A published API name is not a signature, and the wrong guess passes on the first model.**
+  `SUModelGetVersion` reads like a getter for the `SUModelVersion` enum; it actually takes
+  `(major, minor, build)`. The two-arg guess returned a *believable* 22 on Adelphi — the correct
+  major version for its writer — and segfaulted on the next model. `SUEntityGetType` returns its
+  enum directly and is not `SU_RESULT` at all. Check declarations against the shipped headers
+  (`planning/spikes/headless/a3_header_audit.py`), never against a doc page that lists only names.
+- **`SUFaceGetArea` takes no transform, so it is the LOCAL area.** Ruby's collector calls
+  `face.area(transform)` — world. On unscaled models the two agree and the difference is invisible;
+  Adelphi has a scaled container and 14 of 82 faces came out wrong by a constant 2.96x. Use the
+  library's own `SUFaceGetAreaWithTransform` rather than rescaling locally — the same rule as
+  `clean_string` and `is_horizontal`, one layer down.
+- **designPH's Marshal tables are BASE64, not raw binary**, so the NUL-truncation hazard an entire
+  gate was designed around does not exist on that path: every value begins `BAh`, which is base64
+  for Marshal's `\x04\x08` (hence the collector's `MARSHAL_PREFIX = "BAh"`). ⚠ And the NUL check
+  built to catch it *fired on healthy data* — Linde's `tfa_calc_ud` has no NUL yet decodes to 4
+  complete rows, while 95-byte payloads elsewhere do have them. NUL presence is content-dependent,
+  not integrity-dependent. A check that fires on healthy data is testing the wrong property.
+- **Walk definitions once; walking placements does not finish.** Adelphi is 1441 tagged face
+  entities behind **1,023,558 face placements**, Wellington 4,255,761 nodes. Enumerating each
+  definition once is both the correct *entity* basis and ~1000x faster. Where world coordinates are
+  genuinely needed, prune the placement walk to subtrees containing tagged geometry (~0.3% of the
+  model) — prune the traversal, never the answer.
 - SketchUp Ruby is 2.7. Endless-method syntax parses fine in your head and fails on load.
 - macOS `strings(1)` has no `-e` flag; use Python for UTF-16 extraction.
 - `attribute_dictionaries` returns `nil`, not an empty collection, when an entity has none.

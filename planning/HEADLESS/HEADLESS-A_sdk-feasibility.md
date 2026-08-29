@@ -1,8 +1,7 @@
 # HEADLESS-A (Spike A) — SketchUp C SDK feasibility: read a designPH `.skp` headlessly
 
 DATE: 2026-08-28
-STATUS: ⛔ **BLOCKED at G0 (2026-08-28)** — the SDK binary is no longer a public download.
-Results, including the API-surface answer that closed G1's documentation half:
+STATUS: ✅ **PASS — all eight gates green (2026-08-29)**, on a third-party SDK build.
 [`RESULTS/HEADLESS-A_results.md`](RESULTS/HEADLESS-A_results.md)
 AUTHOR: Ed May (drafted by Claude)
 
@@ -237,3 +236,10 @@ worth having*, stop and reassess before spending the rest.
   base is staged. ⚠ Two plan assumptions were wrong: pyslapi's *framework* is a 2025-generation
   build (newer than every corpus writer), not an older SDK generation — only its *binding* is stale;
   and `SUModelGetVersionString` does not exist, so G8 gets an enum, not a version string.
+- 2026-08-29 — **all eight gates PASS.** Ed chose the parallel route (file Trimble's form; run the
+  gates on a third-party build meanwhile). Headless, no SketchUp: 545/545 faces, 239/239 windows and
+  hosts, 99/99 edges, 63/63 Marshal tables, 15/15 files opened, ≈3-4 s/model. G1 needs no geometric
+  fallback. ⚠ Four plan assumptions were wrong and are corrected in the results: G4's NUL hazard does
+  not exist (the tables are base64); `SUFaceGetArea` is the LOCAL area and `SUFaceGetAreaWithTransform`
+  is the one to use; `SUEntityGetAttributeDictionary` is a get-or-CREATE, so a reader mutates the
+  in-memory model; and the read-only enumeration silently under-reports by up to 41%.
