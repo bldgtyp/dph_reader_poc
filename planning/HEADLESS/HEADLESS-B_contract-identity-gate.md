@@ -1,7 +1,7 @@
 # HEADLESS-B (Spike B) — the contract-v2 identity gate: same model, same capture, same HBJSON
 
 DATE: 2026-08-28
-STATUS: ▶ **Unblocked; H0 revision pass DONE 2026-08-29 (§2.1). Nothing else has run.**
+STATUS: ▶ **Unblocked; H0 revision pass DONE 2026-08-29 (§2.1 + §2.2). Nothing else has run.**
 Spike A passed ([`RESULTS/HEADLESS-A_results.md`](RESULTS/HEADLESS-A_results.md)) and pre-answered
 more of this plan than it anticipated — **H1 is effectively already closed** (§2.1). ⚠ Spike A ran
 on a **third-party SDK build**, so everything here inherits that provisional footing.
@@ -87,6 +87,85 @@ unstaged because it has no baseline and no live capture.
 Trimble's SDK, because the official one is behind an unanswered access form. Spike B inherits that
 footing exactly. A PASS here is a strong feasibility result and **not** a commercial green light
 until the suite is re-run on Trimble's own build.
+
+### 2.2 Second revision — the capability sweep (same day)
+
+§2.1 reconciled this plan against Spike A's eight *gates*. A follow-on capability sweep over **16**
+corpus files (`a7_capability_probe.py`, distilled in
+[`../../00_Context/HEADLESS_VIABILITY.md`](../../00_Context/HEADLESS_VIABILITY.md)) then changed
+Spike B's **shape**, not just its details. Three structural changes and four proposals.
+
+#### ★ Structural change 1 — two corpora, not one
+
+Spike B has been written as if all its gates need the five live captures. **They do not**, and the
+distinction is worth real coverage:
+
+| gate | needs a live capture? | corpus |
+|---|---|---|
+| H4 identity · H6 HBJSON equivalence | **yes** — they compare against one | **the 5 captured models** |
+| H2 emission · H3 reconciliation · H5 translator · H7 determinism · H8 cost | **no** | ▶ **all 16 staged files** |
+
+Running the emission-side gates on all 16 buys coverage the POC never had:
+
+- ⭐ **`2536 Holmes` carries 42 named thermal-bridge edges** and was never captured
+  (`DESIGNPH_DATA_MODEL.md` §13.4). It is the **only second bridge model in existence** — and
+  "confirmed on one model is confirmed on nothing" is this repo's most-repeated lesson. H5 running
+  the translator over Holmes's bridges is the highest-value single addition to this plan.
+- ⭐ **`2618 Lavoie`, 146 MB**, is the scale probe H8 wanted.
+- ⭐ **The 1.0.30 sample** exercises a designPH generation below anything the translator has met.
+
+#### ★ Structural change 2 — a new gate, H9: what does the reader do with a version it does not know?
+
+The POC's version gate refuses a 3.x stamp *by name*. The corpus now spans **designPH 1.0.30 →
+2.4.0 BETA**, and 1.0.30 is structurally different: a `Shader` key no 2.x model has, `tfa_calc`
+without the `_ud` suffix, `Klima_Standort` with a capital K (§13.1). A reader that meets it must
+**say so**, not half-read it — hard rule 4, applied to the version axis rather than the entity axis.
+
+- **Method**: run the collector against the 1.0.30 sample and the 2.4.0 BETA model. Record what the
+  version gate does with each.
+- **Right answer**: not yet decided, and that is the gate. Either it reads them and says which
+  fields it could not resolve, or it refuses by name and says why. **Silently producing a partial
+  capture is the failure.** ⚠ Note the precedent: the offline parser returned a clean *zero* on the
+  1.0.30 file for ten days (`DESIGNPH_FILE_FORMATS.md` §4.1) — a plausible wrong answer with no
+  error. Do not reproduce that shape.
+
+#### ★ Structural change 3 — H2 and H7 inherit a safety property, not just a check
+
+⛔ Spike A proved on all 16 files that **reading mutates the in-memory model**: asking a face for a
+dictionary it lacks takes it from 1 dictionary to 2, and that is the *only complete* way to read
+(`HEADLESS_VIABILITY.md` §3.1–3.2). H2's "assert the collector never saves" should therefore be
+**structural, not procedural** — the reader should be incapable of saving (never resolve the write
+symbols), and H2 asserts that property, rather than asserting that a save did not happen.
+
+#### Four contract proposals — for the §9 process, NOT for this spike to implement
+
+Spike A found four things the SDK exposes that **contract v2 does not carry**. Spike B *proposes*;
+it never edits the frozen contract (§6.3). Each needs a decision before v3, and each is cheap:
+
+| candidate | evidence | why it may matter |
+|---|---|---|
+| ⭐ **north correction** | non-zero on 7 of 16 (25.0007° · 44.8647° · 350.6339° …) | **solar orientation.** A Passive House model's geometry is currently emitted with no true-north reference at all |
+| ⭐ **lat / long** | real coordinates on 5 of 16 | climate. ⚠ Also **client data** — a building's real location — so it inherits the `tracker_data` handling rule, and ⚠ `geo_referenced` is `true` with `(0,0)` on Adelphi |
+| **tag / layer name on classified faces** | v2 carries `tag` only on *unclassified* records | the shading question (PRD §7.2). Holmes has 42 tags on non-designPH faces |
+| **model GUID** | stable across reads, differs between saves | cheap change detection for a watcher without hashing 146 MB |
+
+⚠ **One open question, deliberately left open**: windows carry a `DesignPH_dict` with `descNameAuto`
+on 9 of 16 models (§13.3) that the contract does not read. It may be a fourth redundant name
+alongside `designph_name` / `definition_name` / `instance_name`, or the authoritative one. **Measure
+before proposing** — this is exactly the shape of a field added because it exists rather than
+because it is needed.
+
+#### Smaller carry-overs
+
+- **H8 has starting numbers** — ≈16 s for the whole 230 MB corpus, cost tracking *unique entities*
+  (~80–100k/s) rather than file size. ⚠ **Per-model peak memory is still unmeasured**: the sweep ran
+  in one process and `ru_maxrss` is a process high-water mark, so 851 MB is "the run peaked here",
+  not "Lavoie costs this". H8 should run **one process per model**.
+- ➕ **Concurrency is unmeasured and belongs in H8**: can two models be open at once, and is
+  `SUInitialize` thread- or process-safe? A watcher will want to know before Spike C picks a host.
+- **H4's diff gets a free corroborator**: `SUFaceGetNumOpenings` is > 0 on exactly the 81 host faces,
+  so the aperture claim can be cross-checked host-side for one call per face (§2.1 already noted it;
+  it is now measured across the corpus).
 
 ## 3. What already exists (reused, not rebuilt)
 
@@ -208,13 +287,33 @@ persistent-id coverage.
 
 ### H8 — Cost, recorded not gated
 
-Wall time and peak memory per model (Bluff Reach and Linde bracket the corpus), because a server
-budget will eventually want them. Numbers only, no threshold.
+Wall time and peak memory per model, because a server budget will eventually want them. Numbers
+only, no threshold.
+
+▶ **Revised (§2.2)**: Spike A already has wall-clock — ≈16 s for the whole 230 MB corpus, cost
+tracking **unique entity count (~80–100k/s), not file size**. What is missing:
+
+- **Per-model peak RSS**, which requires **one process per model** — the sweep's 851 MB is a
+  process high-water mark across the whole run and cannot be attributed to any one file.
+- **Concurrency**: two models open at once; `SUInitialize` thread/process safety.
+- Bracket with **`2618 Lavoie` (146 MB)** and **`250708` (0.13 s)**, not Bluff Reach and Linde —
+  the real spread is wider than this plan assumed.
+
+### H9 — Unknown designPH versions ⭐ NEW (§2.2)
+
+The corpus now spans **designPH 1.0.30 → 2.4.0 BETA**, and 1.0.30 is structurally different.
+
+- **Method**: run the collector against the 1.0.30 sample and the 2.4.0 BETA model; record what the
+  version gate does.
+- **Right answer**: it **names what it could not resolve**, whichever way it goes — read-with-report
+  or refuse-with-reason. A silent partial capture fails this gate. ⚠ Precedent: the offline parser
+  returned a clean zero on the 1.0.30 file and that stood for ten days
+  (`DESIGNPH_FILE_FORMATS.md` §4.1).
 
 ## 5. Pass / fail
 
 - **PASS** — H1 joins on persistent IDs; H2–H7 all land on their right answers with zero
-  unexplained differences.
+  unexplained differences; **H9 reports rather than half-reads**.
 - **PASS WITH CHANGES** — a fallback path holds (H1 matcher-join, or a G1/G6 carry-over) with its
   limitation stated and its residue reported. The results doc names exactly which claims are now
   inference.
@@ -232,8 +331,9 @@ before any Spike C work (hard rule 7).
 2. `RESULTS/HEADLESS-B_results.md`.
 3. **Durable facts to `00_Context/`** — at minimum the entity-ID answer (it becomes pholio's
    identity foundation), any contract *notes* (per-device `face.area` semantics), and updates to
-   the SDK record Spike A opened. Contract v2 itself changes only through its §9 process — Spike B
-   proposes, never edits.
+   [`SDK_RUNTIME.md`](../../00_Context/SDK_RUNTIME.md) /
+   [`HEADLESS_VIABILITY.md`](../../00_Context/HEADLESS_VIABILITY.md). Contract v2 itself changes only
+   through its §9 process — Spike B **proposes** (§2.2's four candidates), never edits.
 4. A one-paragraph go/no-go recommendation for Spike C, with the H8 numbers attached.
 
 ## 7. Explicitly out of scope
@@ -283,3 +383,11 @@ before any Spike C work (hard rule 7).
   model), H4 compares the **stored base64** payload rather than decoded Marshal, and
   `SUFaceGetNumOpenings` becomes a free second host cross-check. H8 inherits A's timings. The whole
   plan now carries A's third-party-SDK caveat.
+- 2026-08-29 — **second revision (§2.2)**, from the `a7` capability sweep over 16 files. Three
+  structural changes: the emission-side gates (H2/H3/H5/H7/H8) run on **all 16 staged models** while
+  only H4/H6 need the five captures — which brings **Holmes's 42 named thermal-bridge edges**, the
+  **146 MB** scale model and the **1.0.30** generation into scope; a **new H9** on unknown designPH
+  versions; and H2's never-save assertion becomes a **structural** property rather than a check.
+  Four contract-v3 candidates recorded for the §9 process (north correction, lat/long, tag names,
+  model GUID) plus one deliberately-open question (windows carry an unread `DesignPH_dict`).
+  H8 gains per-process memory and concurrency, and re-brackets on Lavoie/250708.
