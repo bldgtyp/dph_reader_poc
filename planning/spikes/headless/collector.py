@@ -68,6 +68,7 @@ from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 from typing import Any
 
+import gate
 from sdk import (
     SDK,
     SUAttributeDictionaryRef,
@@ -1080,6 +1081,10 @@ def capture(
 
     ⛔ The model is **never saved**. That is not a promise this function keeps — `sdk` is
     `read_only`, so it cannot resolve `SUModelSaveToFile` at all (`sdk.py:_ReadOnlyLib`).
+
+    ⚠ This reads unconditionally, by design: the *gate* decides whether a capture may be used, and
+    it is applied by `main` (and by anything else driving this). Keeping the read gate-free is what
+    lets the gate's own evidence — the census — exist to decide the no-stamp row.
     """
     collector = HeadlessCollector(sdk, tables)
     started = time.perf_counter()
@@ -1089,6 +1094,51 @@ def capture(
     finally:
         sdk.close_model(model)
     return document, collector.notices, time.perf_counter() - started
+
+
+def gated_capture(
+    path: Path, sdk: SDK, tables: Tables
+) -> tuple[dict[str, Any] | None, gate.Decision, list[str], float]:
+    """A capture the version gate has passed, or `None` and the refusal that stopped it.
+
+    ⚠ **The gate runs twice, and that is not redundancy.** Before the walk it sees the stamps alone,
+    so a generation this reader has never met is refused in milliseconds rather than meeting a
+    collector written against a schema it does not have. After the walk it sees the census, because
+    "no version stamp" only means "not a designPH model" if the walk *also* found nothing — a row
+    that is simply undecidable before the walk. `gate.py` is `gate.rb` ported; the extension and a
+    headless service must not silently disagree about which files they will read.
+
+    ⛔ On a refusal **nothing is emitted**. A partial capture that does not say it is partial is the
+    failure this exists to prevent (H9), and the precedent is this repo's own: the offline parser
+    returned a clean zero on the 1.0.30 file and it stood for ten days.
+    """
+    stamps = model_version_stamps(sdk, tables, path)
+    pre = gate.version(stamps, None)
+    if pre.refused:
+        return None, pre, [], 0.0
+    document, notices, seconds = capture(path, sdk, tables)
+    post = gate.version(document["model"]["designph_versions"], gate.evidence(document))
+    if post.refused:
+        return None, post, notices, seconds
+    return document, post, notices, seconds
+
+
+def model_version_stamps(sdk: SDK, tables: Tables, path: Path) -> list[str]:
+    """The model's own designPH stamps, read without walking anything.
+
+    Model-level only: designPH writes one per model and reading it costs a file open, which is what
+    makes the pre-walk refusal worth having on a 146 MB file.
+    """
+    collector = HeadlessCollector(sdk, tables)
+    model = sdk.open_model(path)
+    try:
+        dictionary = collector._model_dictionary(model)
+        if dictionary is None:
+            return []
+        stamp = collector._raw(dictionary, MODEL_VERSION_KEY)
+        return [] if stamp is None else [str(stamp)]
+    finally:
+        sdk.close_model(model)
 
 
 def write_capture(document: dict[str, Any], out: Path) -> int:
@@ -1111,14 +1161,31 @@ def main() -> int:
     parser.add_argument("--model", type=Path, required=True, help="a COPY of a .skp, never an original")
     parser.add_argument("--out", type=Path, required=True, help="where to write the extraction JSON")
     parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[3])
+    parser.add_argument(
+        "--no-gate",
+        action="store_true",
+        help="read without the version gate — for the gates that grade the READ, never for a service",
+    )
     args = parser.parse_args()
 
     sdk = SDK(read_only=True)
     tables = Tables(load_ruby_marshal(args.repo_root))
     try:
-        document, notices, seconds = capture(args.model, sdk, tables)
+        if args.no_gate:
+            captured, notices, seconds = capture(args.model, sdk, tables)
+            document, decision = captured, gate.ALLOWED
+        else:
+            document, decision, notices, seconds = gated_capture(args.model, sdk, tables)
     finally:
         sdk.terminate()
+
+    if document is None:
+        # ⛔ Refused: nothing written, and the reason names what it saw.
+        print(f"{args.model.name}: REFUSED — nothing was read and nothing was written\n")
+        print(decision.reason)
+        return 2
+    if decision.note:
+        print(f"  NOTE {decision.note}")
 
     size = write_capture(document, args.out)
     counts = document["counts"]
