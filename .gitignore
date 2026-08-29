@@ -29,6 +29,10 @@ planning/spikes/pyodide/ext/dph_plus_spike/vendor/
 planning/spikes/pyodide/dist/
 planning/spikes/**/.chrome-profile/
 
+# ⚠ CLIENT DATA. HEADLESS-phase scratch: corpus copies, C-SDK captures, diff output.
+# Manifest-tracked, never committed — same rule as poc/_private/.
+planning/spikes/headless/_private/
+
 # POC. Same rule as the spike: ignore the payload and the build output, never the code.
 #   uv run poc/tools/vendor_payload.py     -> poc/vendor/
 #   uv run poc/tools/build_rbz.py          -> poc/ext/dph_plus_poc/vendor/, poc/dist/

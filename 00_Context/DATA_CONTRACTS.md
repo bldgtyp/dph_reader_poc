@@ -48,8 +48,19 @@ Pyodide proxies. Proxies leak (`.destroy()`), and a string is the only thing all
 4. **Report, don't guess.** Any face, window, edge, or assembly that cannot be translated is named
    in a report. Silent loss is the failure mode that would most damage a free tool.
 
+⚠ **The fallback key names are asymmetric, and the obvious guess is wrong.** `areaGroupID` and
+`tempZoneID` fall back to `areaGroupAuto` / `tempZoneAuto` — **no `ID`** — while `assemblyID` falls
+back to `assemblyIDAuto`, which keeps it. `areaGroupIDAuto` does not exist; reading it finds nothing
+and loses `250708`'s 92 assemblies in silence. Adelphi masks it, because every one of its classified
+faces carries `areaGroupID`. The Phase 3 spike shipped exactly this typo
+(`planning/POC/RESULTS/POC-2_results.md` finding 50), **and this document carried it too until
+2026-08-28**, when the HEADLESS Spike-A expected-value derivation hit it again from the offline
+baseline (Linde is the model that needs both keys: 66 + 8 = its 74 classified faces).
+
 ```ruby
-group = dict["areaGroupID"] || dict["areaGroupIDAuto"]   # coalesce
+group     = dict["areaGroupID"] || dict["areaGroupAuto"]     # no "ID" on the fallback
+zone      = dict["tempZoneID"]  || dict["tempZoneAuto"]      # likewise
+assembly  = dict["assemblyID"]  || dict["assemblyIDAuto"]    # ...but this one keeps it
 ```
 
 ### 2.2 Units

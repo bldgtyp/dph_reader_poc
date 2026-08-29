@@ -21,6 +21,14 @@ lives in **`poc/`** and stays **internal-only and never distributed** — the AG
 (`planning/RESULTS/PHASE-3_licence-question.md`) blocks *release*, not internal work (working
 assumption, for counsel — `planning/POC/00_POC_OVERVIEW.md` §2.3).
 
+**▶ One follow-on phase is ACTIVE (opened 2026-08-28):
+[`planning/HEADLESS/`](planning/HEADLESS/.index.md)** — can a headless service read the `.skp` via
+the **SketchUp C SDK**, with no SketchUp installed and no SketchUp seat, and emit the POC's
+contract-v2 capture? (The passive-scrape question behind pholio's Dropbox-watcher model.) Spike A
+(SDK feasibility) is scoped; Spike B (identity gate against the five live captures) is drafted and
+blocked on A; nothing has run yet. The phase reuses the POC's assets as ground truth and reopens
+none of its verdicts — the contract stays frozen at v2 and the POC status table below stands.
+
 > ### ▶ **The successor project is [`pholio`](/Users/em/Dropbox/bldgtyp-00/00_PH_Tools/pholio) (2026-08-21).**
 > The strategy retrospective that closed this POC concluded the right product is **not** a
 > standalone SketchUp extension but *the record above all the tools* — a folder watcher + readers +
@@ -274,8 +282,10 @@ DESIGNPH-PLUS_PRD.md          product requirements
   tools/skp_decode_tables.py  offline Marshal-table decoder (uv run)
 planning/                     phased spike plan, one doc per phase
   POC/                        ★ the completed POC — phased plans + RESULTS/ (incl. the retro, ★ the V-0 starting point)
+  HEADLESS/                   ▶ the ACTIVE phase — headless C-SDK reader spikes (see its .index.md)
   RESULTS/                    spike phase results — write before starting the next phase
   spikes/                     throwaway spike code, kept regardless of outcome
+                              (headless/ holds the HEADLESS phase's scripts; its _private/ is gitignored client-data scratch)
 poc/                          ★ POC code — internal-only, never distributed. See its `.index.md`
   Makefile                    the verification gate: `make ci` (offline), `make identity`
                               (cross-host, needs `_private/`), `make ed` (install)

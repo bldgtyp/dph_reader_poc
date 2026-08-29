@@ -46,7 +46,10 @@ these, check the file — all of it is measured, not guessed:
   V-0.** Picking it up cold: `planning/POC/RESULTS/POC-5_results.md` — the retro; its §4 is the
   ranked "what v1 must do differently" list. `planning/POC/.index.md` carries the closed status
   table and the V-0 routing. Everything else in this section is background to that.
-- **The POC was the last active work** (`planning/POC/`, closed 2026-08-21). POC code belongs in `poc/`, is
+- ▶ **The active work is the HEADLESS phase** (`planning/HEADLESS/`, opened 2026-08-28) — headless
+  C-SDK reader spikes; start at its `.index.md`. Its spike code goes in `planning/spikes/headless/`,
+  client-data scratch in `planning/spikes/headless/_private/` (gitignored, `MANIFEST.md`).
+- **The POC was the previous active work** (`planning/POC/`, closed 2026-08-21). POC code belongs in `poc/`, is
   **internal-only, and is never distributed** — the AGPL question
   (`planning/RESULTS/PHASE-3_licence-question.md`) blocks *release*, not internal POC work (working
   assumption, for counsel — `planning/POC/00_POC_OVERVIEW.md` §2.3). v1 remains blocked on that
