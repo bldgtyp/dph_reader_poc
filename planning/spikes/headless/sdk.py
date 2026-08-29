@@ -30,6 +30,7 @@ from __future__ import annotations
 
 import ctypes
 import ctypes.util
+import re
 from ctypes import POINTER, byref, c_char, c_double, c_int32, c_int64, c_size_t, c_void_p
 from pathlib import Path
 
@@ -65,24 +66,32 @@ RESULT_NAMES = {v: k for k, v in list(globals().items()) if k.startswith("SU_ERR
 # model, because two unprovided out-pointers were being written through. A published name is not a
 # signature; `a3_header_audit.py` now checks every declaration below against the shipped headers.
 
-# SURefType — what an SUEntityRef actually is. Used to classify a walk without guessing.
-REF_TYPES = {
-    0: "Unknown", 1: "AttributeDictionary", 2: "Camera", 3: "ComponentDefinition",
-    4: "ComponentInstance", 5: "Curve", 6: "Edge", 7: "EdgeUse", 8: "Entities", 9: "Face",
-    10: "Group", 11: "Image", 12: "Layer", 13: "Loop", 14: "MeshHelper", 15: "Material",
-    16: "Model", 17: "Polyline3d", 18: "Scene", 19: "Texture", 20: "TextureWriter",
-    21: "TypedValue", 22: "UVHelper", 23: "Vertex", 24: "RenderingOptions", 25: "GuidePoint",
-    26: "GuideLine", 27: "Schema", 28: "SchemaType", 29: "ShadowInfo", 30: "Attribute",
-    31: "Text", 32: "Dimension", 33: "DimensionLinear", 34: "DimensionRadial",
-    35: "DimensionStyle", 36: "Font", 37: "InstancePath", 38: "ImageRep", 39: "Overlay",
-    40: "LineStyle", 41: "SectionPlane", 42: "LayerFolder", 43: "Environment",
-}
+# SURefType / SUTypedValueType — READ FROM THE SHIPPED HEADERS, never hand-written.
+#
+# ⚠ These start empty and are filled in by `SDK._load_enums()` at load time, in place, so every
+# module that did `from sdk import REF_TYPES` sees the corrected values.
+#
+# ⚠⚠ **A hand-copied enum is the same trap as a hand-copied signature, and it failed the same way.**
+# The first version of this map was written from the published documentation and had
+# `Face = 9`. In the shipped API 13.0 header, `SURefType` gained `Environment` and `Environments`
+# at 8 and 9, so **`Face` is 11** and 9 is `Environments`. A host-face type check written against
+# the doc order therefore rejected **every** glued host on every model — 0 of 239 — which reads
+# exactly like "the glue query does not work" and is not. Spike A never noticed because none of its
+# gates used this map; the contract-v2 collector's host test does.
+#
+# `SUTypedValueType` was correct as hand-written and is still parsed, for the same reason: being
+# right once is not a reason to keep guessing.
+REF_TYPES: dict[int, str] = {}
 
-# SUTypedValueType — the type tag. Hard rule 5 (type-check every attribute read) needs this.
-TYPED_VALUE_TYPES = {
-    0: "Empty", 1: "Byte", 2: "Short", 3: "Int32", 4: "Float", 5: "Double", 6: "Bool",
-    7: "Color", 8: "Time", 9: "String", 10: "Vector3D", 11: "Array",
-}
+#: Hard rule 5 (type-check every attribute read) needs this: `areaGroupID` is a String `'n'` on
+#: 1359 of Adelphi's 1441 tagged faces, and the tag is what says so.
+TYPED_VALUE_TYPES: dict[int, str] = {}
+
+#: (header file, enum name, member prefix) for each enum parsed out of the SDK's own headers.
+_ENUMS = (
+    ("model/defs.h", "SURefType", "SURefType_", REF_TYPES),
+    ("model/typed_value.h", "SUTypedValueType", "SUTypedValueType_", TYPED_VALUE_TYPES),
+)
 
 
 class SUResultError(RuntimeError):
@@ -139,22 +148,97 @@ DEFAULT_FRAMEWORK = (
 )
 
 
-class SDK:
-    """A loaded SketchUpAPI framework, with `SUInitialize` already called."""
+class _ReadOnlyLib:
+    """A `CDLL` that can only hand back symbols the binding **declared**.
 
-    def __init__(self, framework: Path | None = None) -> None:
+    ⛔ **This is the structural half of "never save an opened model."**
+    `SUEntityGetAttributeDictionary` is a get-or-CREATE, so a C-SDK reader mutates the in-memory
+    model as a side effect of reading it — the only thing standing between that and a violation of
+    hard rule 2 is that nothing ever writes the file back
+    (`HEADLESS-A_results.md` §3.2). An *intention* not to save is not a check; a reader that
+    **cannot resolve `SUModelSaveToFile`** is.
+
+    The allow-list is `SDK.declared`, derived from the signature table itself, so it cannot drift
+    from the binding: adding a writer to the table is the only way to make one reachable, and that
+    is a visible edit rather than an accident.
+    """
+
+    def __init__(self, lib: ctypes.CDLL, allowed: frozenset[str]) -> None:
+        self._lib = lib
+        self._allowed = allowed
+
+    def __getattr__(self, name: str):
+        if name not in self._allowed:
+            raise PermissionError(
+                f"{name} is not declared by this binding, and this SDK handle is read-only. "
+                "A headless reader must be incapable of saving an opened model "
+                "(HEADLESS-B §2.2, hard rule 2)."
+            )
+        return getattr(self._lib, name)
+
+
+class SDK:
+    """A loaded SketchUpAPI framework, with `SUInitialize` already called.
+
+    `read_only=True` wraps the library in `_ReadOnlyLib`, which is what the headless collector
+    uses — see that class for why the property is structural rather than procedural.
+    """
+
+    def __init__(self, framework: Path | None = None, read_only: bool = False) -> None:
         self.path = Path(framework) if framework else DEFAULT_FRAMEWORK
         if not self.path.exists():
             raise SystemExit(
                 f"SketchUpAPI framework not found at {self.path}\n"
                 "Stage it first — see planning/HEADLESS/RESULTS/HEADLESS-A_results.md §1.1"
             )
-        self.lib = ctypes.CDLL(str(self.path))
+        self._raw_lib = ctypes.CDLL(str(self.path))
+        self.lib = self._raw_lib
+        self.headers = self.path.parent / "Headers"
+        self._load_enums()
         self._configure()
-        self.lib.SUInitialize()
+        self.read_only = read_only
+        if read_only:
+            self.lib = _ReadOnlyLib(self._raw_lib, self.declared)
+        self._raw_lib.SUInitialize()
         self._initialized = True
 
     # -- plumbing ---------------------------------------------------------
+
+    def _load_enums(self) -> None:
+        """Fill `REF_TYPES` / `TYPED_VALUE_TYPES` from the framework's OWN headers, in place.
+
+        Parsed rather than transcribed, because the published order and the shipped order are not
+        the same thing: API 13.0's `SURefType` inserted `Environment`/`Environments` at 8 and 9, so
+        every member after `Edge` sits two higher than the documentation's list. See the note beside
+        `REF_TYPES`.
+        """
+        for relative, enum_name, prefix, target in _ENUMS:
+            path = self.headers / relative
+            if not path.is_file():
+                raise SystemExit(
+                    f"{enum_name} cannot be read: {path} is missing.\n"
+                    "The enum values are NOT safe to assume — see the note beside REF_TYPES."
+                )
+            body = path.read_text(errors="replace")
+            start = body.find(f"enum {enum_name} {{")
+            if start < 0:
+                raise SystemExit(f"{enum_name} not found in {path}")
+            block = body[start : body.index("}", start)]
+            target.clear()
+            value = 0
+            for member in re.finditer(rf"\b{prefix}(\w+)\b\s*(?:=\s*(\d+))?", block):
+                if member.group(2) is not None:
+                    value = int(member.group(2))
+                target[value] = member.group(1)
+                value += 1
+
+    def ref_type(self, name: str) -> int:
+        """The `SURefType` value for a member name — never a numeric literal in calling code."""
+        for value, member in REF_TYPES.items():
+            if member == name:
+                return value
+        raise KeyError(f"SURefType_{name} is not in this SDK's headers")
+
 
     def _configure(self) -> None:
         """Declare argtypes/restype for everything used. ctypes defaults to int for untyped returns,
@@ -256,7 +340,16 @@ class SDK:
             ("SUGroupGetEntities", [SUGroupRef, POINTER(SUEntitiesRef)], c_int32),
             ("SUGroupGetTransform", [SUGroupRef, POINTER(SUTransformation)], c_int32),
             ("SUGroupGetName", [SUGroupRef, POINTER(SUStringRef)], c_int32),
+            # tags — the contract ships a SketchUp tag (layer) name on every unclassified face.
+            ("SUDrawingElementGetLayer", [SUDrawingElementRef, POINTER(SULayerRef)], c_int32),
+            ("SULayerGetName", [SULayerRef, POINTER(SUStringRef)], c_int32),
         ]
+        #: Every symbol this binding declares. ⛔ **There is no writer in it** — no
+        #: `SUModelSaveToFile`, no `SUEntityAddAttributeDictionary`, no `SU*Set*` — and
+        #: `read_only=True` turns that from a fact about this list into a property of the process:
+        #: the reader cannot resolve a symbol it did not declare, so it cannot save. See
+        #: `_ReadOnlyLib`.
+        self.declared = frozenset(name for name, _, _ in sig)
         for name, args, res in sig:
             fn = getattr(L, name, None)
             if fn is None:
@@ -266,8 +359,13 @@ class SDK:
                 fn.restype = res
 
     def missing(self, names: list[str]) -> list[str]:
-        """Which of these symbols the loaded binary does not export. A doc name is not a symbol."""
-        return [n for n in names if not hasattr(self.lib, n)]
+        """Which of these symbols the loaded binary does not export. A doc name is not a symbol.
+
+        Asks the **raw** library on purpose: this is a question about what the binary exports, not
+        about what this handle may call. `a7_capability_probe.py` uses it to report that the write
+        symbols are present and therefore worth refusing (`_ReadOnlyLib`).
+        """
+        return [n for n in names if not hasattr(self._raw_lib, n)]
 
     def check(self, name: str, code: int, tolerate: tuple[int, ...] = ()) -> int:
         if code != SU_ERROR_NONE and code not in tolerate:
@@ -344,5 +442,5 @@ class SDK:
 
     def terminate(self) -> None:
         if getattr(self, "_initialized", False):
-            self.lib.SUTerminate()
+            self._raw_lib.SUTerminate()
             self._initialized = False
