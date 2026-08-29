@@ -25,22 +25,47 @@ assumption, for counsel — `planning/POC/00_POC_OVERVIEW.md` §2.3).
 [`planning/HEADLESS/`](planning/HEADLESS/.index.md)** — can a headless service read the `.skp` via
 the **SketchUp C SDK**, with no SketchUp installed and no SketchUp seat, and emit the POC's
 contract-v2 capture? (The passive-scrape question behind pholio's Dropbox-watcher model.)
+✅ **Answered yes, twice over: Spikes A and B both PASS (2026-08-29).** Spike C (deployment) is
+the remaining technical question; the blocking ones are legal.
 
 ✅ **Spike A PASSED 2026-08-29** ([results](planning/HEADLESS/RESULTS/HEADLESS-A_results.md)). A
 headless CPython process, no SketchUp anywhere, reproduces the live Ruby collector's reads exactly
 on all five real models — **545/545 classified faces · 239/239 windows, every host via the glue
 query · 99/99 thermal-bridge edges · 63/63 Marshal tables · 15/15 files opened**, at ≈3-4 s per
 model, with world geometry matching to **0.0000 mm** on windows and 0.0008 mm on face vertices.
-Durable record: [`00_Context/SDK_RUNTIME.md`](00_Context/SDK_RUNTIME.md). Spike B is unblocked but
-not started.
 
-⛔ **Two caveats, and the first is not technical.** Trimble's C SDK is **no longer a public
+✅ **Spike B PASSED the same day** ([results](planning/HEADLESS/RESULTS/HEADLESS-B_results.md)) —
+and it is the one that answers the product question. **A headless reader is a drop-in capture
+device.** It emits the frozen contract v2 with **0 unexplained differences on 5/5** models against
+the live SketchUp captures (worst geometry deviation **0.000000 mm**), reconciles under the
+unchanged harness, feeds the **untouched** translator to the POC's own acceptance numbers
+(545/545 · 239/239 · 99/99, TFA 368.5 / 1491.9 / 448.2 m²), and produces **canonically identical
+HBJSON** on all five. All **16** staged models emit contract v2 in **11.8 s**; the 146 MB scale
+probe reads in 2.5 s at 717 MB peak; two models open at once, two processes and two threads all
+work. ⭐ **`2536 Holmes`'s 42 named thermal-bridge edges are captured for the first time** — the
+only second bridge model in existence.
+
+The four differences that survive are all named and none is a difference in what was read:
+`entity_id` (which the contract already calls session-scoped — ⚠ and it is scoped to the
+**process**, so a watcher hashing captures to detect change must exclude it), record order,
+**signed zero** (72 coordinates, `-0.0` vs `0.0`, invisible to `==`), and `model.file_name`, where
+the headless reader is deliberately **right** and the live one inherited a backup's misspelling
+from `Sketchup::Model#path`.
+
+Durable record: [`00_Context/SDK_RUNTIME.md`](00_Context/SDK_RUNTIME.md) §4e-§4g and
+[`00_Context/HEADLESS_VIABILITY.md`](00_Context/HEADLESS_VIABILITY.md). ▶ **Spike C (deployment) is
+unblocked**, with the licensing block stated first.
+
+⛔ **Three caveats, and the first is not technical.** Trimble's C SDK is **no longer a public
 download** — it sits behind a "Request Access" form with no reported turnaround — so Spike A ran on
 a third-party re-host of the binary, on Ed's explicit call, as *feasibility-only* evidence to be
 re-run against the official SDK; **licensing task L1 (read the SDK EULA) cannot start**, because
 the EULA ships inside the download nobody can get. And ⛔ **a C-SDK reader mutates the in-memory
 model as a side effect of reading it** (`SUEntityGetAttributeDictionary` is a get-or-CREATE), so
-*never save an opened model* is a load-bearing invariant.
+*never save an opened model* is a load-bearing invariant. ✅ Spike B made that **structural** rather
+than procedural — the binding declares no writer and the read-only handle refuses to resolve one, 6
+of 6. ⚠ And third: **a PASS makes the AGPL §13 reframing (L2) urgent rather than hypothetical**, because
+a working server-side path is exactly what triggers it.
 
 The phase reuses the POC's assets as ground truth and reopens none of its verdicts — the contract
 stays frozen at v2 and the POC status table below stands.

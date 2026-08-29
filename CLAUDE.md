@@ -272,6 +272,31 @@ these, check the file — all of it is measured, not guessed:
   major version for its writer — and segfaulted on the next model. `SUEntityGetType` returns its
   enum directly and is not `SU_RESULT` at all. Check declarations against the shipped headers
   (`planning/spikes/headless/a3_header_audit.py`), never against a doc page that lists only names.
+- **A published *enum* is not the shipped enum, and the wrong one produces a clean zero.** The
+  doxygen `SURefType` puts `Face` at 9; the shipped API 13.0 header inserts `Environment` and
+  `Environments` at 8 and 9, so **`Face` is 11** and everything after `Edge` moves by two. A
+  host-face type check written against the documented order rejects **every** glued host on every
+  model — 0 of 239 — and reads exactly like "the glue query does not work". Parse the enums out of
+  the framework's own headers; never transcribe them. (Same rule as `a3_header_audit.py` applies to
+  signatures, one level down.)
+- **`-0.0 == 0.0` is `True`, so `==` cannot see a signed-zero difference — but `json.dumps` can.**
+  The C arithmetic reaches an exact zero from below where Ruby reaches it from above: **72
+  coordinates across the corpus**, always the same direction. The symptom was five canonically
+  mismatched HBJSON documents with **no locatable difference**, from a comparison walk that
+  reported `None` while the hashes disagreed. ⚠ And the check written to catch it **could not
+  fire**: its number-flattening helper descended lists but not dicts, and it is called on a whole
+  record. A check that cannot fire is worse than no check, because it gets quoted as evidence.
+- **`SUEntityGetID` is scoped to the PROCESS, not the model.** Reading thirteen other models first
+  moves every one of Adelphi's 128 ids and grows the capture by 384 bytes. Contract v2 already
+  calls `entity_id` session-scoped, so this is the contract being right — but it means two captures
+  of one unchanged file are byte-identical only *within a process history*, and it is what made a
+  concurrency check report a MISMATCH on **two plain parallel processes**, where nothing concurrent
+  was happening at all. When a check fires on 100 % of your data, suspect the check.
+- **An INPUT difference has to be removed from the input.** `model.file_name` legitimately differs
+  between the two capture devices, and honeybee threads it into the model, the room and the
+  building segment as a *substring* of derived identifiers. Two attempts to scrub it out of the
+  *output* each fixed one occurrence and revealed the next — which is exactly how a canonicaliser
+  grows until it can no longer fail. Align the one field in the input and say so.
 - **`SUFaceGetArea` takes no transform, so it is the LOCAL area.** Ruby's collector calls
   `face.area(transform)` — world. On unscaled models the two agree and the difference is invisible;
   Adelphi has a scaled container and 14 of 82 faces came out wrong by a constant 2.96x. Use the
