@@ -13,9 +13,51 @@ doubled the list, and every addition is something that was *measured* rather tha
 **Evidence base:** five real projects (designPH 2.1.15–2.2.29, SketchUp 22–26) captured live and
 reconciled against an offline scan of all 14 corpus files — 545 classified faces, 239 windows, 99
 thermal bridges, all four assembly tiers, with designPH's own U-/R-value calculator and the PHPP as
-arithmetic ground truth.
+arithmetic ground truth. ▶ **Extended 2026-08-29 by the HEADLESS phase**: the same five models plus
+eleven more (16 in total, designPH **1.0.30 → 2.4.0 BETA**, including a **146 MB** model and a
+second thermal-bridge project) read again through the **SketchUp C SDK with no SketchUp installed**
+— which both re-confirmed every §4 rule independently and added a route with its own constraints
+(§0).
 
 Legend: 🔴 blocker · 🟠 constraint you must design around · 🔵 rule with a known correct answer
+
+---
+
+## 0. ⚠ There are now TWO routes, and most of this document is about one of them
+
+Everything below §1 was written for the **extension route** — code running *inside* SketchUp, in
+Ruby and in Pyodide inside an `HtmlDialog`. Since 2026-08-29 a second route is proven: a
+**headless C-SDK reader**, a plain CPython process with no SketchUp installed and no SketchUp seat
+([`HEADLESS_VIABILITY.md`](HEADLESS_VIABILITY.md), `planning/HEADLESS/`).
+
+⚠ **Applying the wrong route's constraints is the mistake this section exists to prevent.** They
+are very different, and the headless one is *far* less constrained technically and *equally*
+constrained legally.
+
+| Constraint | Extension route | Headless C-SDK route |
+|---|---|---|
+| §2 Pyodide 0.24.1 ceiling, set by the oldest SketchUp's Chromium | 🔴 hard | ✅ **does not exist** — full modern CPython |
+| §2 15.3 MB install footprint, 2.6 s boot | 🟠 | ✅ does not exist |
+| §2/§4 the 4 MB `HtmlDialog` bridge | 🟠 | ✅ does not exist |
+| §3 threading — the worker/`UI.start_timer` dance that hangs SketchUp | 🔴 | ✅ does not exist |
+| §3 `file://` cannot fetch its own assets | 🔴 | ✅ does not exist |
+| §4 the designPH read rules (coalesce, `glued_to`, edges, area semantics…) | 🔵 | 🔵 **identical — same rules, same traps, verified byte-for-byte** |
+| §5 the honeybee stack and its eight wheels | 🟠 | ✅ relaxed — no purity requirement, real pydantic available |
+| §1 the AGPL question · the designPH 3.0 licence · the PHI conversation | 🔴 | 🔴 **unchanged, and AGPL §13 becomes *more* urgent** — a server-side path is what triggers it |
+| **SDK availability** (Request Access form, no public download) | n/a | 🔴 **new blocker, and it gates the EULA too** |
+| **Reading mutates the in-memory model** | n/a | 🔴 **new** — "never save an opened model" is load-bearing |
+| **Memory ratchets and never falls** | n/a | 🟠 **new** — size or recycle the worker |
+| **`entity_id` is process-scoped** | n/a | 🟠 **new** — a watcher cannot hash the capture to detect change |
+
+**Where to read the headless route's own limits:** [`HEADLESS_VIABILITY.md`](HEADLESS_VIABILITY.md)
+§3 (limits and pitfalls) and §5 (what it means for the product);
+[`SDK_RUNTIME.md`](SDK_RUNTIME.md) §1 (availability) and §4 (the five traps).
+
+★ **The one thing both routes share completely is §4** — everything this project learned about
+*reading designPH data* transferred to the C SDK unchanged, and was then verified at the byte level:
+a headless capture matches the live SketchUp capture with **0 unexplained differences on 5 real
+models**, worst geometry deviation **0.000000 mm**. The designPH knowledge is route-independent. The
+runtime knowledge is not.
 
 ---
 
