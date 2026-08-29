@@ -17,22 +17,10 @@
 set -uo pipefail
 cd "$(dirname "$0")"
 
-P=_private
-FAIL=0
+# shellcheck source=_gate_runner.sh
+source "$(dirname "$0")/_gate_runner.sh"
 
-run() {
-  local label=$1; shift
-  local out
-  out=$(uv run "$@" 2>/dev/null | grep '^VERDICT') || true
-  if [[ -z $out ]]; then
-    echo "❌ $label — NO VERDICT LINE (the script failed; re-run it without 2>/dev/null)"
-    FAIL=1
-    return
-  fi
-  echo "$out"
-  grep -q 'FAIL\|MISMATCH\|INCOMPLETE' <<<"$out" && FAIL=1
-  return 0
-}
+P=_private
 
 echo "=== Spike B gates ==============================================================="
 run "H2 emission"        b2_h2_emission.py --corpus "$P/corpus" --out-dir "$P/out/captures" \
@@ -48,7 +36,7 @@ run "H4 identity diff"   b4_h4_identity_diff.py --captures "$P/out/captures" \
 run "H5 translator"      b5_h5_translate.py --captures "$P/out/captures" --fixtures "$P/fixtures" \
                              --out-dir "$P/out/translated" --out "$P/out/b5_translate.json"
 run "H6 HBJSON"          b6_h6_hbjson.py --translations "$P/out/translated" \
-                             --out "$P/out/b6_hbjson.json"
+                             --fixtures "$P/fixtures" --out "$P/out/b6_hbjson.json"
 run "H7 determinism"     b7_h7_determinism.py --corpus "$P/corpus" --work "$P/out/determinism" \
                              --out "$P/out/b7_determinism.json"
 run "H8 cost"            b8_h8_cost.py --corpus "$P/corpus" --captures "$P/out/captures" \
@@ -56,6 +44,4 @@ run "H8 cost"            b8_h8_cost.py --corpus "$P/corpus" --captures "$P/out/c
 run "H9 versions"        b9_h9_versions.py --corpus "$P/corpus" --captures "$P/out/captures" \
                              --baseline "$P/baselines/corpus_baseline.json" \
                              --out "$P/out/b9_versions.json"
-echo "================================================================================"
-[[ $FAIL -eq 0 ]] && echo "SPIKE B: all gates green" || echo "SPIKE B: at least one gate is not green"
-exit $FAIL
+finish "SPIKE B"

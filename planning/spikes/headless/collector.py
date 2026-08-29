@@ -56,10 +56,9 @@ from __future__ import annotations
 
 import argparse
 import base64
-import importlib.util
+import hashlib
 import json
 import math
-import sys
 import time
 from collections import Counter
 from ctypes import byref, c_double, c_int32, c_size_t
@@ -86,6 +85,7 @@ from sdk import (
     SUPoint3D,
     SUTransformation,
     SUVertexRef,
+    load_module,
 )
 from walk import IDENTITY, Walker, apply, compose
 
@@ -119,6 +119,10 @@ COALESCE: dict[str, tuple[str, str]] = {
 }
 
 TFA_KEY = "TFA_rf"
+
+#: The contract's three per-entity record sections. Named here because this module defines the
+#: contract's shape; every gate that iterates them imports it rather than writing the tuple again.
+RECORD_SECTIONS = ("faces", "edges", "windows")
 
 SHIP_TABLES = ("assemblies_calc", "assemblies_ud", "connections_ud", "vent_ud", "ihg_ud")
 SHIP_TABLE_PREFIXES = ("layer_table_",)
@@ -211,14 +215,7 @@ def load_ruby_marshal(repo_root: Path) -> Any:
     accepted POC risk, because the POC only ever reads BLDGTYP's own models. A headless service
     reads files it did not author, so the construct-nothing reader is not an optimisation here.
     """
-    path = repo_root / "planning" / "spikes" / "phase1" / "ruby_marshal.py"
-    spec = importlib.util.spec_from_file_location("ruby_marshal", path)
-    if spec is None or spec.loader is None:
-        raise SystemExit(f"cannot import {path}")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules["ruby_marshal"] = module
-    spec.loader.exec_module(module)
-    return module
+    return load_module(repo_root / "planning" / "spikes" / "phase1" / "ruby_marshal.py", "ruby_marshal")
 
 
 class Tables:
@@ -347,7 +344,6 @@ class _Container:
     once per entity and expanding only the counts and the geometry over placements does, in seconds.
     """
 
-    entities: SUEntitiesRef
     faces: list[_FaceEntity] = field(default_factory=list)
     edges: list[_EdgeEntity] = field(default_factory=list)
     instances: list[_Instance] = field(default_factory=list)
@@ -403,10 +399,6 @@ class HeadlessCollector:
         self.walker = Walker(sdk)
         self.tables = tables
         self._layer_names: dict[int, str] = {}
-        #: ⚠ Read from the SDK's own headers, never hardcoded. The published `SURefType` order puts
-        #: `Face` at 9; the shipped API 13.0 header puts it at **11**, and a literal 9 here rejects
-        #: every glued host on every model — 0 of 239, reading exactly like a broken glue query.
-        self._face_type = sdk.ref_type("Face")
         #: Anything the reader could not resolve. Hard rule 4: report, never guess.
         self.notices: list[str] = []
 
@@ -473,7 +465,7 @@ class HeadlessCollector:
     def _read_container(
         self, entities: SUEntitiesRef, pending: list[SUEntitiesRef]
     ) -> _Container:
-        container = _Container(entities=entities)
+        container = _Container()
 
         faces = self.sdk.get_list("SUEntitiesGetNumFaces", "SUEntitiesGetFaces", SUFaceRef, entities)
         container.n_faces = len(faces)
@@ -849,8 +841,11 @@ class HeadlessCollector:
         this call (`HEADLESS-A_results.md` G1).
 
         ⚠ A glue target is any drawing element, so the type is checked — `collector.rb`'s
-        `host.is_a?(Sketchup::Face)`, one layer down. ⚠⚠ And the type *value* comes from the
-        shipped header (`SDK.ref_type`), not from the documented enum order, which is two off.
+        `host.is_a?(Sketchup::Face)`, one layer down. ⚠⚠ And the type name is resolved through
+        `SDK.entity_type`, whose map is parsed from the **shipped header**: the documented
+        `SURefType` order puts `Face` at 9 and the shipped API 13.0 header puts it at **11**, so a
+        literal comparison against the doc order rejects every glued host on every model — 0 of 239,
+        reading exactly like a broken glue query.
         """
         attached = self.sdk.get_list(
             "SUComponentInstanceGetNumAttachedToDrawingElements",
@@ -859,7 +854,7 @@ class HeadlessCollector:
             instance,
         )
         for element in attached:
-            if self.sdk.lib.SUEntityGetType(SUEntityRef(element.ptr)) != self._face_type:
+            if self.sdk.entity_type(SUEntityRef(element.ptr)) != "Face":
                 continue
             face = SUFaceRef(element.ptr)
             inner = c_size_t()
@@ -905,6 +900,37 @@ class HeadlessCollector:
             "units_note": UNITS_NOTE,
         }
 
+    def model_blobs(self, model: SUModelRef) -> dict[str, bytes]:
+        """Every model-level Marshal blob, as the **stored base64 bytes**, keyed by name.
+
+        Public because the identity gate's transport check needs exactly this and had been
+        re-implementing the predicate — a copy of a rule, living in the gate rather than in the
+        reader, which would keep testing the old rule if this one ever changed.
+        """
+        dictionary = self._model_dictionary(model)
+        if dictionary is None:
+            return {}
+        blobs: dict[str, bytes] = {}
+        for key in self.walker.dict_keys(dictionary):
+            got = self.walker.typed_value(dictionary, key)
+            if not got or got[0] != "String" or not isinstance(got[1], bytes):
+                continue
+            if got[1].startswith(MARSHAL_PREFIX):  # designPH_version, klima_ID are plain scalars
+                blobs[key] = got[1]
+        return blobs
+
+    def model_stamps(self, model: SUModelRef) -> list[str]:
+        """The model's own designPH version stamps, read without walking anything.
+
+        Model-level only: designPH writes one per model, so the pre-walk gate costs a dictionary
+        lookup on an already-open model rather than a second file open.
+        """
+        dictionary = self._model_dictionary(model)
+        if dictionary is None:
+            return []
+        stamp = self._raw(dictionary, MODEL_VERSION_KEY)
+        return [] if stamp is None else [str(stamp)]
+
     def _model_tables(self, model: SUModelRef) -> tuple[dict[str, Any], list[str]]:
         """Returns (shipped tables, **every** blob key found).
 
@@ -912,21 +938,13 @@ class HeadlessCollector:
         treats absence as tier-unresolvable and reports; Adelphi, the primary fixture, carries no
         `assemblies_calc`, no `connections_ud` and no `layer_table_*`, so absence is the normal case.
         """
-        dictionary = self._model_dictionary(model)
-        if dictionary is None:
-            return {}, []
-        found: list[str] = []
-        shipped: dict[str, Any] = {}
-        for key in self.walker.dict_keys(dictionary):
-            got = self.walker.typed_value(dictionary, key)
-            if not got or got[0] != "String" or not isinstance(got[1], bytes):
-                continue
-            if not got[1].startswith(MARSHAL_PREFIX):
-                continue  # designPH_version, klima_ID — plain scalars, not tables
-            found.append(key)
-            if key in SHIP_TABLES or key.startswith(SHIP_TABLE_PREFIXES):
-                shipped[key] = self.tables.decode(got[1])
-        return shipped, sorted(found)
+        blobs = self.model_blobs(model)
+        shipped = {
+            key: self.tables.decode(value)
+            for key, value in blobs.items()
+            if key in SHIP_TABLES or key.startswith(SHIP_TABLE_PREFIXES)
+        }
+        return shipped, sorted(blobs)
 
     def _model_dictionary(self, model: SUModelRef) -> SUAttributeDictionaryRef | None:
         """The model's own `DesignPH_dict`, found by **enumerating** the model's dictionaries.
@@ -1074,71 +1092,88 @@ class HeadlessCollector:
 # --------------------------------------------------------------------------------------------
 
 
-def capture(
-    path: Path, sdk: SDK, tables: Tables
-) -> tuple[dict[str, Any], list[str], float]:
-    """Open one `.skp`, extract it, close it. Returns (document, notices, seconds).
+@dataclass(frozen=True)
+class Capture:
+    """One file's read. `document` is `None` exactly when the version gate refused it."""
+
+    document: dict[str, Any] | None
+    decision: gate.Decision
+    notices: list[str]
+    seconds: float
+
+
+def capture(path: Path, sdk: SDK, tables: Tables, *, apply_gate: bool = True) -> Capture:
+    """Open one `.skp` **once**, gate it, walk it, close it.
 
     ⛔ The model is **never saved**. That is not a promise this function keeps — `sdk` is
     `read_only`, so it cannot resolve `SUModelSaveToFile` at all (`sdk.py:_ReadOnlyLib`).
 
-    ⚠ This reads unconditionally, by design: the *gate* decides whether a capture may be used, and
-    it is applied by `main` (and by anything else driving this). Keeping the read gate-free is what
-    lets the gate's own evidence — the census — exist to decide the no-stamp row.
+    ⚠ **The version gate runs twice on one open, and that is not redundancy.** Before the walk it
+    sees the stamps alone, so a designPH generation this reader has never met is refused in
+    milliseconds rather than meeting a collector written against a schema it does not have. After
+    the walk it sees the census, because "no version stamp" only means "not a designPH model" if
+    the walk *also* found nothing — a row that is simply undecidable before the walk. `gate.py` is
+    `gate.rb` ported; the extension and a headless service must not silently disagree about which
+    files they will read.
+
+    ⚠ **One open, not two.** An earlier version read the stamps through a throwaway collector on its
+    own `open_model`, then opened the same file again to walk it. `SUModelCreateFromFile` is
+    **4.49 s of the corpus's 11.77 s** — 38 % of all read time — so paying it twice to save the
+    walk is a net loss on every model that passes, which is the normal case: measured on the 146 MB
+    `2618 Lavoie`, 3.75 s gated against 2.57 s ungated. Reading the stamps off the already-open
+    handle keeps the pre-walk refusal *and* the cost the docstring was claiming for it.
+
+    ⛔ On a refusal **nothing is emitted**. A partial capture that does not say it is partial is the
+    failure this exists to prevent (H9), and the precedent is this repo's own: the offline parser
+    returned a clean zero on the 1.0.30 file and it stood for ten days.
+
+    `apply_gate=False` reads unconditionally — for the gates that grade the *read* over the whole
+    staged corpus, one model of which the gate refuses. Never for a service.
     """
     collector = HeadlessCollector(sdk, tables)
     started = time.perf_counter()
     model = sdk.open_model(path)
     try:
+        if apply_gate:
+            pre = gate.version(collector.model_stamps(model), None)
+            if pre.refused:
+                return Capture(None, pre, collector.notices, time.perf_counter() - started)
         document = collector.extract(model, path.stem)
     finally:
         sdk.close_model(model)
-    return document, collector.notices, time.perf_counter() - started
+
+    seconds = time.perf_counter() - started
+    decision = gate.ALLOWED
+    if apply_gate:
+        decision = gate.version(document["model"]["designph_versions"], gate.evidence(document))
+        if decision.refused:
+            return Capture(None, decision, collector.notices, seconds)
+    return Capture(document, decision, collector.notices, seconds)
 
 
-def gated_capture(
-    path: Path, sdk: SDK, tables: Tables
-) -> tuple[dict[str, Any] | None, gate.Decision, list[str], float]:
-    """A capture the version gate has passed, or `None` and the refusal that stopped it.
+def comparable_digest(document: dict[str, Any]) -> str:
+    """A capture's hash with the contract's **session-scoped** field removed.
 
-    ⚠ **The gate runs twice, and that is not redundancy.** Before the walk it sees the stamps alone,
-    so a generation this reader has never met is refused in milliseconds rather than meeting a
-    collector written against a schema it does not have. After the walk it sees the census, because
-    "no version stamp" only means "not a designPH model" if the walk *also* found nothing — a row
-    that is simply undecidable before the walk. `gate.py` is `gate.rb` ported; the extension and a
-    headless service must not silently disagree about which files they will read.
+    ⚠ `entity_id` is `SUEntityGetID`, and it is scoped to the **process**, not to the model: reading
+    thirteen other models first shifts every one of Adelphi's 128 ids and grows the capture by 384
+    bytes. Contract §2 already calls the field a debugging aid only — but it means a raw byte
+    comparison of two captures taken under different process histories reports a mismatch on 100 %
+    of models and means nothing by it. Everything else is compared exactly.
 
-    ⛔ On a refusal **nothing is emitted**. A partial capture that does not say it is partial is the
-    failure this exists to prevent (H9), and the precedent is this repo's own: the offline parser
-    returned a clean zero on the 1.0.30 file and it stood for ten days.
+    Defined here, beside the field it excludes, so a watcher hashing captures to detect change gets
+    the same answer as the gates do rather than reinventing the rule.
     """
-    stamps = model_version_stamps(sdk, tables, path)
-    pre = gate.version(stamps, None)
-    if pre.refused:
-        return None, pre, [], 0.0
-    document, notices, seconds = capture(path, sdk, tables)
-    post = gate.version(document["model"]["designph_versions"], gate.evidence(document))
-    if post.refused:
-        return None, post, notices, seconds
-    return document, post, notices, seconds
-
-
-def model_version_stamps(sdk: SDK, tables: Tables, path: Path) -> list[str]:
-    """The model's own designPH stamps, read without walking anything.
-
-    Model-level only: designPH writes one per model and reading it costs a file open, which is what
-    makes the pre-walk refusal worth having on a 146 MB file.
-    """
-    collector = HeadlessCollector(sdk, tables)
-    model = sdk.open_model(path)
-    try:
-        dictionary = collector._model_dictionary(model)
-        if dictionary is None:
-            return []
-        stamp = collector._raw(dictionary, MODEL_VERSION_KEY)
-        return [] if stamp is None else [str(stamp)]
-    finally:
-        sdk.close_model(model)
+    stripped = {
+        key: (
+            [{k: v for k, v in record.items() if k != "entity_id"} for record in value]
+            if key in RECORD_SECTIONS
+            else value
+        )
+        for key, value in document.items()
+    }
+    return hashlib.sha256(
+        json.dumps(stripped, sort_keys=True, separators=(",", ":")).encode("utf-8")
+    ).hexdigest()
 
 
 def write_capture(document: dict[str, Any], out: Path) -> int:
@@ -1171,14 +1206,13 @@ def main() -> int:
     sdk = SDK(read_only=True)
     tables = Tables(load_ruby_marshal(args.repo_root))
     try:
-        if args.no_gate:
-            captured, notices, seconds = capture(args.model, sdk, tables)
-            document, decision = captured, gate.ALLOWED
-        else:
-            document, decision, notices, seconds = gated_capture(args.model, sdk, tables)
+        result = capture(args.model, sdk, tables, apply_gate=not args.no_gate)
     finally:
         sdk.terminate()
 
+    document, decision, notices, seconds = (
+        result.document, result.decision, result.notices, result.seconds
+    )
     if document is None:
         # ⛔ Refused: nothing written, and the reason names what it saw.
         print(f"{args.model.name}: REFUSED — nothing was read and nothing was written\n")

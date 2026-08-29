@@ -47,21 +47,11 @@ from pathlib import Path
 from typing import Any
 
 from a3_header_audit import DEFAULT_HEADERS, parse_headers
-
-#: The five models with a live capture. Only these can grade claim (c) — there is no ground truth
-#: for the other eleven, so running them here would prove nothing.
-CAPTURED = (
-    "adelphi-designph_COPY",
-    "2414_Bluff Reach_COPY",
-    "2523 Wellington_COPY",
-    "250703 - Linde Residence_COPY",
-    "250708_COPY",
-)
+from collector import RECORD_SECTIONS
+from harness import captured_models, write_result
 
 #: (a) — both must be exported and declared, and the *persistent* one is the identity.
 ID_FUNCTIONS = ("SUEntityGetID", "SUEntityGetPersistentID")
-
-SECTIONS = ("faces", "edges", "windows")
 
 
 def ids_of(document: dict[str, Any], section: str) -> dict[str, dict[str, Any]]:
@@ -83,7 +73,7 @@ def coverage(document: dict[str, Any]) -> dict[str, Any]:
     zero = 0
     total = 0
     depths: dict[int, int] = {}
-    for section in SECTIONS:
+    for section in RECORD_SECTIONS:
         for record in document[section]:
             parts = path_parts(record["id"])
             total += 1
@@ -110,8 +100,9 @@ def main() -> int:
     header_functions = parse_headers(args.headers)
     absent = [name for name in ID_FUNCTIONS if name not in header_functions]
 
+    expected_models = captured_models(args.fixtures)
     models: dict[str, Any] = {}
-    for name in CAPTURED:
+    for name in expected_models:
         headless_path = args.captures / f"{name}.extraction.json"
         live_path = args.fixtures / f"{name}.extraction.json"
         if not headless_path.exists() or not live_path.exists():
@@ -121,19 +112,23 @@ def main() -> int:
         live = json.loads(live_path.read_text(encoding="utf-8"))
 
         row: dict[str, Any] = {"coverage": coverage(headless), "sections": {}}
-        for section in SECTIONS:
+        for section in RECORD_SECTIONS:
             mine, theirs = ids_of(headless, section), ids_of(live, section)
             row["sections"][section] = {
                 "live": len(theirs),
                 "headless": len(mine),
                 "matched": len(set(mine) & set(theirs)),
+                # ⚠ Counts as well as names: the truncated lists cannot tell you *how many* were
+                # unmatched, only the first ten, and the count is what the verdict grades on.
+                "unmatched_live": len(set(theirs) - set(mine)),
+                "unmatched_headless": len(set(mine) - set(theirs)),
                 "only_live": sorted(set(theirs) - set(mine))[:10],
                 "only_headless": sorted(set(mine) - set(theirs))[:10],
             }
         models[name] = row
 
         unmatched = sum(
-            len(s["only_live"]) + len(s["only_headless"]) for s in row["sections"].values()
+            s["unmatched_live"] + s["unmatched_headless"] for s in row["sections"].values()
         )
         totals = " · ".join(
             f"{k} {v['matched']}/{v['live']}" for k, v in row["sections"].items()
@@ -147,27 +142,28 @@ def main() -> int:
 
     matched = sum(s["matched"] for m in models.values() for s in m["sections"].values())
     expected = sum(s["live"] for m in models.values() for s in m["sections"].values())
+    # ⚠ Both directions. An earlier version graded only `matched == sum(live)`, so a record present
+    # in the headless capture and absent from the live one did not affect the verdict — in the gate
+    # that establishes the join key everything above it is graded through.
+    emitted = sum(s["headless"] for m in models.values() for s in m["sections"].values())
     zeros = sum(m["coverage"]["with_a_zero_persistent_id"] for m in models.values())
     # ⚠ A join is only evidence if the ids it joins on are distinguishing. A model whose paths were
-    # all depth 0 with zero pids would match 100 % and mean nothing.
-    nested = any(
-        depth > 0
-        for m in models.values()
-        for depth in m["coverage"]["path_depths"]
-        if m["coverage"]["path_depths"][depth]
+    # all depth 0 with zero pids would match 100 % and mean nothing — so nesting must be exercised.
+    nested = any(depth > 0 for m in models.values() for depth in m["coverage"]["path_depths"])
+    passed = (
+        len(models) == len(expected_models)
+        and matched == expected == emitted
+        and not zeros
+        and not absent
+        and nested
     )
-    passed = bool(models) and matched == expected and not zeros and not absent and nested
 
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(
-        json.dumps(
-            {
-                "provenance": "third-party SDK re-host — feasibility-only evidence",
-                "header_functions_present": {n: n not in absent for n in ID_FUNCTIONS},
-                "models": models,
-            },
-            indent=1,
-        )
+    write_result(
+        args.out,
+        {
+            "header_functions_present": {n: n not in absent for n in ID_FUNCTIONS},
+            "models": models,
+        },
     )
     print(
         f"\nVERDICT H1: {'PASS' if passed else 'FAIL'} — {matched}/{expected} entities join on the "

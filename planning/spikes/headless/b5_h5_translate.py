@@ -60,8 +60,14 @@ ACCEPTANCE: dict[str, dict[str, Any]] = {
 #: TFA is quoted to one decimal in the results docs; anything inside this is the same number.
 TFA_TOLERANCE_M2 = 0.05
 
-#: Summary keys that legitimately differ between two runs. The first two are H4's named buckets one
-#: layer up; `hbjson_bytes` is a different thing entirely and belongs to H6:
+#: Summary keys that legitimately differ between two runs.
+#:
+#: ⚠ **`model` is NOT one of them.** An earlier version excluded the whole `model` sub-object to
+#: absorb one string (`file_name`) — which also blinded the comparison to `klima_id`,
+#: `klima_standort` and `designph_versions`, the fields that would say the two readers disagreed
+#: about the model itself. The right-sized fix was already built: compare the **name-aligned**
+#: translation, where that one field is equal by construction.
+#:
 #:
 #: ⚠ **`hbjson_bytes` is not an equality test and cannot be made into one.** honeybee-energy orders
 #: four of its lists out of a `set`, so two runs of the same translator on the same input emit the
@@ -70,7 +76,7 @@ TFA_TOLERANCE_M2 = 0.05
 #: which 371 are `uuid4` churn on `properties.ph.*.identifier`/`display_name` and the rest are that
 #: reordering. Both are documented, measured-harmless per-export effects
 #: (`00_Context/HONEYBEE_STACK.md` §4), and canonical equivalence is H6's job.
-DEVICE_FIELDS = {"generated_by", "model", "hbjson_bytes"}
+DEVICE_FIELDS = {"generated_by", "hbjson_bytes"}
 
 RUNNER = """
 import json, sys
@@ -98,9 +104,11 @@ def translate(python: Path, capture: Path, out: Path, runner: Path) -> dict[str,
 
 def grade(name: str, result: dict[str, Any]) -> list[str]:
     """The acceptance table, per model. Returns the failures."""
+    if "error" in result:
+        return [f"translation failed: {result['error']}"]
     expected = ACCEPTANCE.get(name)
-    if expected is None or "error" in result:
-        return [f"translation failed: {result.get('error', '?')}"] if "error" in result else []
+    if expected is None:
+        return []  # no live capture: recorded, not graded
     summary = result["summary"]
     problems: list[str] = []
     for label, key, want in (
@@ -204,12 +212,15 @@ def main() -> int:
             }
             document["model"]["file_name"] = aligned_name
             aligned_capture.write_text(json.dumps(document, separators=(",", ":")), encoding="utf-8")
-            translate(
+            aligned = translate(
                 python, aligned_capture, args.out_dir / f"{name}.headless-aligned.hbjson.json", runner
             )
             row["live_verdict"] = live.get("verdict", {}).get("headline")
+            # ⚠ The ALIGNED translation's summary: the one input difference is removed in the
+            # input, so `model` stays in the comparison and a climate or version disagreement would
+            # still show.
             row["summary_differences"] = compare_summaries(
-                result.get("summary", {}), live.get("summary", {})
+                aligned.get("summary", {}), live.get("summary", {})
             )
             if row["verdict"] != row["live_verdict"]:
                 row["acceptance_problems"].append(

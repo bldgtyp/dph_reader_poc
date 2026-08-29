@@ -38,20 +38,13 @@ from __future__ import annotations
 
 import argparse
 import hashlib
-import importlib.util
 import json
 import math
-import sys
 from pathlib import Path
 from typing import Any
 
-CAPTURED = (
-    "adelphi-designph_COPY",
-    "2414_Bluff Reach_COPY",
-    "2523 Wellington_COPY",
-    "250703 - Linde Residence_COPY",
-    "250708_COPY",
-)
+from harness import captured_models
+from sdk import load_module
 
 
 def load_canonicaliser(repo_root: Path) -> Any:
@@ -60,14 +53,7 @@ def load_canonicaliser(repo_root: Path) -> Any:
     Two canonicalisers would drift, and the failure mode of a drifted one is a check that quietly
     stops being able to fail. The module imports cleanly without running anything.
     """
-    path = repo_root / "poc" / "tools" / "byte_identity.py"
-    spec = importlib.util.spec_from_file_location("byte_identity", path)
-    if spec is None or spec.loader is None:
-        raise SystemExit(f"cannot import {path}")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules["byte_identity"] = module
-    spec.loader.exec_module(module)
-    return module
+    return load_module(repo_root / "poc" / "tools" / "byte_identity.py", "byte_identity")
 
 
 def unsign_zeros(document: Any) -> tuple[Any, int]:
@@ -128,8 +114,16 @@ def first_difference(a: Any, b: Any, path: str = "") -> str | None:
     return None if a == b else f"{path}: {str(a)[:80]!r} vs {str(b)[:80]!r}"
 
 
+#: Every perturbation the comparison must catch. ⚠ Each must be **exercised at least once across
+#: the corpus**, not merely "not failed": `250708` carries no constructions at all (tier 3 × 92), so
+#: a per-model skip is normal and a corpus-wide skip is the self-test quietly testing nothing.
+SELF_TEST_CASES = ("moved vertex", "reversed winding", "renamed construction")
+
+
 def self_test(canonicaliser: Any, document: Any) -> tuple[list[str], list[str]]:
-    """⚠ Prove the comparison can still FAIL before trusting it to pass. Returns (failures, skips).
+    """⚠ Prove the comparison can still FAIL before trusting it to pass.
+
+    Returns (failures, the cases this model was able to exercise).
 
     This gate renumbers every UUID, sorts four lists, absorbs signed zeros and takes its model name
     from an aligned input. That is a lot of normalising, and a canonicaliser that normalises too much
@@ -140,9 +134,11 @@ def self_test(canonicaliser: Any, document: Any) -> tuple[list[str], list[str]]:
     so a canonicaliser that sorted geometry would call a wall and its mirror identical, inside the
     tool whose job is catching silent differences.
 
-    ⚠ A case whose target does not exist in this model is **reported as skipped**, never silently
-    passed: `250708` carries no constructions at all (tier 3 × 92), and a self-test that quietly
-    tests two things instead of three is the failure it was written to prevent.
+    ⚠ It runs on **every** model, and the verdict requires each case to have been exercised
+    somewhere. An earlier version ran on the first model only and printed "detects a moved vertex, a
+    reversed winding and a renamed construction" whenever nothing *failed* — including when a case
+    had been skipped for want of a target. That is the same defect as the POC's green banner, inside
+    the check written to prevent it.
     """
 
     def detects(mutate: Any) -> bool:
@@ -150,12 +146,15 @@ def self_test(canonicaliser: Any, document: Any) -> tuple[list[str], list[str]]:
         right, _ = unsign_zeros(canonicaliser.canonicalise(mutate))
         return digest(left) != digest(right)
 
+    def copy() -> Any:
+        return json.loads(json.dumps(document))
+
     failures: list[str] = []
-    skips: list[str] = []
-    copy = lambda: json.loads(json.dumps(document))  # noqa: E731 — a deep copy, named at use site
+    exercised: list[str] = []
 
     faces = document.get("rooms", [{}])[0].get("faces") or []
     if faces and faces[0].get("geometry", {}).get("boundary"):
+        exercised += ["moved vertex", "reversed winding"]
         moved = copy()
         moved["rooms"][0]["faces"][0]["geometry"]["boundary"][0][0] += 1e-6
         if not detects(moved):
@@ -164,18 +163,15 @@ def self_test(canonicaliser: Any, document: Any) -> tuple[list[str], list[str]]:
         flipped["rooms"][0]["faces"][0]["geometry"]["boundary"].reverse()
         if not detects(flipped):
             failures.append("a reversed face winding was NOT detected — geometry is being sorted")
-    else:
-        skips.append("no face geometry in this model")
 
     if document.get("properties", {}).get("energy", {}).get("constructions"):
+        exercised.append("renamed construction")
         renamed = copy()
         renamed["properties"]["energy"]["constructions"][0]["display_name"] += "!"
         if not detects(renamed):
             failures.append("a renamed construction was NOT detected")
-    else:
-        skips.append("no constructions in this model")
 
-    return failures, skips
+    return failures, exercised
 
 
 def main() -> int:
@@ -183,17 +179,18 @@ def main() -> int:
         description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter
     )
     parser.add_argument("--translations", type=Path, required=True, help="b5's --out-dir")
+    parser.add_argument("--fixtures", type=Path, required=True, help="the live captures")
     parser.add_argument("--out", type=Path, required=True)
     parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[3])
     args = parser.parse_args()
 
     canonicaliser = load_canonicaliser(args.repo_root)
+    expected = captured_models(args.fixtures)
     models: dict[str, Any] = {}
     self_test_failures: list[str] = []
-    self_test_skips: list[str] = []
-    self_test_done = False
+    self_test_exercised: set[str] = set()
 
-    for name in CAPTURED:
+    for name in expected:
         # ⚠ The NAME-ALIGNED headless translation (b5): the same headless capture with
         # `model.file_name` set to the live capture's, so the only remaining difference is what the
         # two readers read. The alignment happens in the input and is recorded there; nothing about
@@ -221,17 +218,9 @@ def main() -> int:
         equal = unsigned["headless"] == unsigned["live"]
         difference = None if equal else first_difference(canonical_headless, canonical_live)
 
-        if not self_test_done:
-            self_test_failures, self_test_skips = self_test(canonicaliser, headless)
-            self_test_done = True
-            print(
-                f"{'✅' if not self_test_failures else '❌'} self-test on {name}: the comparison "
-                f"detects a moved vertex, a reversed winding and a renamed construction"
-            )
-            for failure in self_test_failures:
-                print(f"     ⚠ {failure}")
-            for skip in self_test_skips:
-                print(f"     ⚠ case skipped — {skip}")
+        failures, exercised = self_test(canonicaliser, headless)
+        self_test_failures.extend(f"{name}: {f}" for f in failures)
+        self_test_exercised.update(exercised)
 
         models[name] = {
             "bytes": {
@@ -256,6 +245,22 @@ def main() -> int:
         if difference:
             print(f"     ⚠ first difference: {difference}")
 
+    identical = sum(1 for row in models.values() if row["canonically_identical"])
+    unexercised = sorted(set(SELF_TEST_CASES) - self_test_exercised)
+    passed = (
+        len(models) == len(expected)
+        and identical == len(models)
+        and not self_test_failures
+        and not unexercised
+    )
+    print(
+        f"{'✅' if not self_test_failures and not unexercised else '❌'} self-test: the comparison "
+        f"detected {sorted(self_test_exercised)} across the corpus"
+    )
+    for failure in self_test_failures:
+        print(f"     ⚠ {failure}")
+    for case in unexercised:
+        print(f"     ⚠ '{case}' was never exercised on any model — the self-test proved nothing about it")
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(
         json.dumps(
@@ -263,15 +268,12 @@ def main() -> int:
                 "provenance": "third-party SDK re-host — feasibility-only evidence",
                 "canonicaliser": "poc/tools/byte_identity.py:canonicalise (imported, not copied)",
                 "self_test_failures": self_test_failures,
-                "self_test_skips": self_test_skips,
+                "self_test_cases_exercised": sorted(self_test_exercised),
+                "self_test_cases_never_exercised": unexercised,
                 "models": models,
             },
             indent=1,
         )
-    )
-    identical = sum(1 for row in models.values() if row["canonically_identical"])
-    passed = (
-        len(models) == len(CAPTURED) and identical == len(models) and not self_test_failures
     )
     print(
         f"\nVERDICT H6: {'PASS' if passed else 'FAIL'} — {identical}/{len(models)} models produce "

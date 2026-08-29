@@ -36,7 +36,6 @@ Spike C picks a host. Three separate questions, and they have different answers:
 from __future__ import annotations
 
 import argparse
-import hashlib
 import json
 import subprocess
 import sys
@@ -44,45 +43,47 @@ import time
 from pathlib import Path
 from typing import Any
 
-#: Reads one model and reports its OWN peak RSS. Run as a child so the figure belongs to one model.
-#: ⚠ macOS reports `ru_maxrss` in bytes; Linux reports kibibytes. Normalised here rather than in the
-#: caller, where the platform is no longer visible.
-SINGLE = """
-import json, resource, sys, time
+from collector import comparable_digest
+from harness import run_child
+
+#: Every child measurement opens the same way. Written once: an earlier version repeated these four
+#: lines and the RSS block in three embedded scripts, and a change to `capture()`'s signature had to
+#: be found in three string literals with no import to follow and no linter that sees them.
+PREAMBLE = """
+import json, resource, sys, threading, time
 from pathlib import Path
 sys.path.insert(0, sys.argv[1])
-from collector import SDK, Tables, capture, load_ruby_marshal, write_capture
+from collector import SDK, HeadlessCollector, Tables, capture, load_ruby_marshal, write_capture
 
 sdk = SDK(read_only=True)
 tables = Tables(load_ruby_marshal(Path(sys.argv[2])))
 started = time.perf_counter()
-document, notices, seconds = capture(Path(sys.argv[3]), sdk, tables)
-size = write_capture(document, Path(sys.argv[4]))
+"""
+
+#: ⚠ macOS reports `ru_maxrss` in **bytes**, Linux in **kibibytes**. Encoded once: three copies of a
+#: 1024x platform correction, in a figure reported as a headline cost, is one Linux run away from
+#: three different units in one JSON file.
+PEAK_RSS = """
 sdk.terminate()
 peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
 scale = 1024 * 1024 if sys.platform == "darwin" else 1024
-print(json.dumps({
-    "seconds": round(seconds, 3),
-    "total_seconds": round(time.perf_counter() - started, 3),
-    "peak_rss_mb": round(peak / scale, 1),
-    "bytes": size,
-    "counts": document["counts"],
-    "notices": notices,
-}))
+REPORT["seconds"] = round(time.perf_counter() - started, 3)
+REPORT["peak_rss_mb"] = round(peak / scale, 1)
+print(json.dumps(REPORT))
 """
+
+#: Reads one model and reports its OWN peak RSS. Run as a child so the figure belongs to one model.
+SINGLE = PREAMBLE + """
+result = capture(Path(sys.argv[3]), sdk, tables, apply_gate=False)
+size = write_capture(result.document, Path(sys.argv[4]))
+REPORT = {"read_seconds": round(result.seconds, 3), "bytes": size,
+          "counts": result.document["counts"], "notices": result.notices}
+""" + PEAK_RSS
 
 #: Both models open **at the same time**, then read. If the SDK objected to a second open model this
 #: is where it would say so.
-BOTH_OPEN = """
-import json, resource, sys, time
-from pathlib import Path
-sys.path.insert(0, sys.argv[1])
-from collector import SDK, HeadlessCollector, Tables, load_ruby_marshal, write_capture
-
-sdk = SDK(read_only=True)
-tables = Tables(load_ruby_marshal(Path(sys.argv[2])))
+BOTH_OPEN = PREAMBLE + """
 first, second = Path(sys.argv[3]), Path(sys.argv[4])
-started = time.perf_counter()
 a = sdk.open_model(first)
 b = sdk.open_model(second)
 try:
@@ -91,22 +92,12 @@ try:
 finally:
     sdk.close_model(a)
     sdk.close_model(b)
-sdk.terminate()
-peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-scale = 1024 * 1024 if sys.platform == "darwin" else 1024
-print(json.dumps({"seconds": round(time.perf_counter() - started, 3),
-                  "peak_rss_mb": round(peak / scale, 1)}))
-"""
+REPORT = {}
+""" + PEAK_RSS
 
 #: Two threads, one process, one `SUInitialize`. ⚠ Deliberately in a child: if this is unsafe it
 #: crashes, and a crash must be a recorded result rather than the end of the run.
-THREADED = """
-import json, resource, sys, threading, time
-from pathlib import Path
-sys.path.insert(0, sys.argv[1])
-from collector import SDK, HeadlessCollector, Tables, load_ruby_marshal, write_capture
-
-sdk = SDK(read_only=True)
+THREADED = PREAMBLE + """
 root = Path(sys.argv[2])
 paths = [Path(sys.argv[3]), Path(sys.argv[4])]
 outs = [Path(sys.argv[5]), Path(sys.argv[6])]
@@ -114,62 +105,34 @@ errors = []
 
 def read(path, out):
     try:
-        tables = Tables(load_ruby_marshal(root))
         model = sdk.open_model(path)
         try:
-            write_capture(HeadlessCollector(sdk, tables).extract(model, path.stem), out)
+            write_capture(HeadlessCollector(sdk, Tables(load_ruby_marshal(root))).extract(
+                model, path.stem), out)
         finally:
             sdk.close_model(model)
     except BaseException as error:
         errors.append(f"{type(error).__name__}: {error}")
 
-started = time.perf_counter()
 threads = [threading.Thread(target=read, args=(p, o)) for p, o in zip(paths, outs)]
 for t in threads: t.start()
 for t in threads: t.join()
-sdk.terminate()
-peak = resource.getrusage(resource.RUSAGE_SELF).ru_maxrss
-scale = 1024 * 1024 if sys.platform == "darwin" else 1024
-print(json.dumps({"seconds": round(time.perf_counter() - started, 3),
-                  "peak_rss_mb": round(peak / scale, 1), "errors": errors}))
-"""
-
-
-def child(script: str, work: Path, name: str, arguments: list[str]) -> dict[str, Any]:
-    """Run one measurement in its own interpreter and return its JSON line, or its failure."""
-    runner = work / f"_{name}.py"
-    runner.parent.mkdir(parents=True, exist_ok=True)
-    runner.write_text(script, encoding="utf-8")
-    run = subprocess.run(
-        [sys.executable, str(runner), *arguments], capture_output=True, text=True
-    )
-    if run.returncode != 0:
-        return {"error": f"exit {run.returncode}: {run.stderr.strip()[-800:]}"}
-    lines = [line for line in run.stdout.splitlines() if line.startswith("{")]
-    return json.loads(lines[-1]) if lines else {"error": "no result line"}
+REPORT = {"errors": errors}
+""" + PEAK_RSS
 
 
 def digest(path: Path) -> str | None:
-    """A capture's hash **with `entity_id` removed**, which is the only comparable form.
+    """A capture's comparable hash, or `None` when the file is missing.
 
-    ⚠ `entity_id` is `SUEntityGetID`, and the contract calls it session-scoped, a debugging aid
-    only (§2). It is scoped to the *process*, not to the model: reading thirteen other models first
-    shifts every one of Adelphi's 128 ids, and the capture grows 384 bytes. So a raw byte
-    comparison across two different process histories reports a mismatch on 100 % of models and
-    means nothing by it — which is exactly what the first version of this check did, on the
-    plain two-processes-in-parallel case where nothing concurrent was happening at all.
-
-    Everything else is compared byte-for-byte.
+    ⚠ `collector.comparable_digest` excludes `entity_id` — the contract's session-scoped field,
+    which is scoped to the **process** rather than the model. A raw byte comparison across two
+    process histories reports a mismatch on 100 % of models and means nothing by it, which is exactly
+    what the first version of this check did on the plain two-processes-in-parallel case, where
+    nothing concurrent was happening at all.
     """
     if not path.exists():
         return None
-    document = json.loads(path.read_text(encoding="utf-8"))
-    for section in ("faces", "edges", "windows"):
-        for record in document.get(section, []):
-            record.pop("entity_id", None)
-    return hashlib.sha256(
-        json.dumps(document, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()
+    return comparable_digest(json.loads(path.read_text(encoding="utf-8")))
 
 
 def main() -> int:
@@ -191,10 +154,11 @@ def main() -> int:
     models: dict[str, Any] = {}
     for model in sorted(args.corpus.glob("*.skp")):
         out = args.work / f"{model.stem}.single.json"
-        result = child(SINGLE, args.work, "single", [here, root, str(model.resolve()), str(out)])
+        result = run_child(SINGLE, args.work, "single", [here, root, str(model.resolve()), str(out)])
         result["file_mb"] = round(model.stat().st_size / 1_048_576, 1)
         counts = result.get("counts", {})
         result["entities"] = counts.get("faces_tagged", 0) + counts.get("edges_tagged", 0)
+        result["seconds"] = result.get("read_seconds", result.get("seconds", 0.0))
         models[model.name] = result
         if "error" in result:
             print(f"❌ {model.name}: {result['error'].splitlines()[-1]}")
@@ -205,14 +169,21 @@ def main() -> int:
         )
 
     # -- concurrency -------------------------------------------------------
-    pair = [
-        args.corpus / "adelphi-designph_COPY.skp",
-        args.corpus / "2618_Lavoie_SCALEPROBE_COPY.skp",
-    ]
+    # ⚠ Derived from what was just measured, not two names. The docstring says the brackets should
+    # be the largest file and the fastest read; hardcoding them meant a renamed or unstaged file
+    # left `concurrency` empty and the printout silent, inside a PASS.
+    measured = [(name, row) for name, row in models.items() if "error" not in row]
+    pair: list[Path] = []
+    if len(measured) >= 2:
+        largest = max(measured, key=lambda item: item[1]["file_mb"])[0]
+        fastest = min(
+            (item for item in measured if item[0] != largest), key=lambda item: item[1]["seconds"]
+        )[0]
+        pair = [args.corpus / largest, args.corpus / fastest]
     concurrency: dict[str, Any] = {}
-    if all(path.exists() for path in pair):
+    if len(pair) == 2 and all(path.exists() for path in pair):
         outs = [args.work / f"{path.stem}.both.json" for path in pair]
-        both = child(
+        both = run_child(
             BOTH_OPEN, args.work, "both",
             [here, root, *(str(p.resolve()) for p in pair), *(str(o.resolve()) for o in outs)],
         )
@@ -253,7 +224,7 @@ def main() -> int:
         }
 
         thread_outs = [args.work / f"{path.stem}.threaded.json" for path in pair]
-        concurrency["two_threads_in_one_process"] = child(
+        concurrency["two_threads_in_one_process"] = run_child(
             THREADED, args.work, "threaded",
             [here, root, *(str(p.resolve()) for p in pair),
              *(str(o.resolve()) for o in thread_outs)],
@@ -278,6 +249,23 @@ def main() -> int:
         )
         print(f"   {label:<34} {state} — {agree}")
 
+    # ⚠ Cost is recorded, but *agreement* is not a cost measurement: "does a threaded read corrupt
+    # the capture" is a yes/no with a wrong answer, and it was previously printed on a non-VERDICT
+    # line inside a function that returned 0 unconditionally. Two threads silently producing a wrong
+    # capture would have been a green Spike B.
+    disagreements = sorted(
+        f"{label}: {name}"
+        for label, row in concurrency.items()
+        for name, agrees in (row.get("matches_sequential_capture") or {}).items()
+        if not agrees
+    )
+    concurrency_ran = [label for label, row in concurrency.items() if "error" not in row]
+    concurrency_ok = (
+        len(concurrency_ran) == 3 and not disagreements and not any(
+            row.get("errors") for row in concurrency.values()
+        )
+    )
+
     ok = [row for row in models.values() if "error" not in row]
     slowest = max(ok, key=lambda row: row["seconds"], default=None)
     heaviest = max(ok, key=lambda row: row["peak_rss_mb"], default=None)
@@ -289,17 +277,23 @@ def main() -> int:
                 "note": "recorded, not gated — H8 sets no threshold",
                 "models": models,
                 "concurrency": concurrency,
+                "concurrency_disagreements": disagreements,
             },
             indent=1,
         )
     )
     print(
-        f"\nVERDICT H8: RECORDED — {len(ok)}/{len(models)} models measured one process each; "
+        f"VERDICT H8-concurrency: {'PASS' if concurrency_ok else 'FAIL'} — "
+        f"{len(concurrency_ran)}/3 modes ran and every capture they produced matches the "
+        f"sequential one (entity_id aside); {len(disagreements)} disagreement(s) {disagreements}"
+    )
+    print(
+        f"VERDICT H8: RECORDED — {len(ok)}/{len(models)} models measured one process each; "
         f"slowest {slowest['seconds'] if slowest else '?'} s, "
         f"heaviest {heaviest['peak_rss_mb'] if heaviest else '?'} MB peak RSS, "
         f"total {sum(row['seconds'] for row in ok):.1f} s → {args.out}"
     )
-    return 0
+    return 0 if concurrency_ok else 1
 
 
 if __name__ == "__main__":

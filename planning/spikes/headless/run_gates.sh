@@ -13,22 +13,10 @@
 set -uo pipefail
 cd "$(dirname "$0")"
 
-P=_private
-FAIL=0
+# shellcheck source=_gate_runner.sh
+source "$(dirname "$0")/_gate_runner.sh"
 
-run() {
-  local label=$1; shift
-  local out
-  out=$(uv run "$@" 2>/dev/null | grep '^VERDICT') || true
-  if [[ -z $out ]]; then
-    echo "❌ $label — NO VERDICT LINE (the script failed; re-run it without 2>/dev/null)"
-    FAIL=1
-    return
-  fi
-  echo "$out"
-  grep -q 'FAIL\|MISMATCH\|INCOMPLETE' <<<"$out" && FAIL=1
-  return 0
-}
+P=_private
 
 echo "=== Spike A gates ==============================================================="
 run "a3 header audit"   a3_header_audit.py --out "$P/out/a3_header_audit.json"
@@ -43,6 +31,4 @@ run "a5 G6/G7"          a5_g6_g7_geometry.py --corpus "$P/corpus" --fixtures "$P
                             --out "$P/out/a5_geometry.json"
 run "a6 G4"             a6_g4_marshal.py --corpus "$P/corpus" --fixtures "$P/fixtures" \
                             --out "$P/out/a6_marshal.json"
-echo "================================================================================"
-[[ $FAIL -eq 0 ]] && echo "SPIKE A: all gates green" || echo "SPIKE A: at least one gate is not green"
-exit $FAIL
+finish "SPIKE A"

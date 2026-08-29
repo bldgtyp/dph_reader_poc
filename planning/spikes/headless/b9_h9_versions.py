@@ -45,6 +45,9 @@ from pathlib import Path
 from typing import Any
 
 import gate
+from collector import MODEL_KLIMA_ID, MODEL_KLIMA_NAME, MODEL_VERSION_KEY
+from harness import write_result
+from sdk import load_module
 
 #: The two models this gate exists for, and why each is here. Everything else in the corpus is 2.1
 #: to 2.2 and exercises nothing on this axis.
@@ -57,12 +60,16 @@ UNDER_TEST = {
     ),
 }
 
-#: Model-level keys that are not tables and are read into `model` (contract §1). Anything else the
-#: model carries that the reader does not consume is *named* rather than ignored.
-KNOWN_MODEL_KEYS = {"designPH_version", "klima_ID", "Klima_Standort"}
+#: Model-level keys that are not tables and are read into `model` (contract §1) — **taken from the
+#: collector**, not retyped. This set is what the gate subtracts to find unread blob keys, so a
+#: hand-copy that fell behind would report a key the reader had learned to read as a silent partial
+#: capture: firing on healthy data, which is the same defect `baseline_blob_keys` was written about.
+KNOWN_MODEL_KEYS = {MODEL_VERSION_KEY, MODEL_KLIMA_ID, MODEL_KLIMA_NAME}
 
 
-def baseline_model_keys(baseline: dict[str, Any], stem: str) -> dict[str, dict[str, Any]] | None:
+def baseline_model_keys(
+    match_baseline: Any, baseline: dict[str, Any], stem: str
+) -> dict[str, dict[str, Any]] | None:
     """The model-level keys the OFFLINE reader recorded, or `None` when this model has no baseline.
 
     ⚠ `None` and `{}` are different answers and conflating them is how a check stops being able to
@@ -73,12 +80,8 @@ def baseline_model_keys(baseline: dict[str, Any], stem: str) -> dict[str, dict[s
     not in the capture may be history. It is still the right comparison, because the failure being
     guarded against is a capture that is *thin* and does not say so.
     """
-    for suffix in ("_COPY", ""):
-        wanted = stem.removesuffix(suffix).strip().casefold()
-        for name, record in baseline.items():
-            if name.removesuffix(".skp").strip().casefold() == wanted:
-                return dict(record.get("model_keys") or {})
-    return None
+    found = match_baseline(stem, baseline)
+    return dict(found[1].get("model_keys") or {}) if found else None
 
 
 def baseline_blob_keys(keys: dict[str, dict[str, Any]] | None) -> list[str]:
@@ -107,15 +110,23 @@ def main() -> int:
     parser.add_argument("--captures", type=Path, required=True)
     parser.add_argument("--baseline", type=Path, required=True)
     parser.add_argument("--out", type=Path, required=True)
+    parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[3])
     args = parser.parse_args()
 
     baseline = json.loads(args.baseline.read_text(encoding="utf-8"))
+    match_baseline = load_module(
+        args.repo_root / "poc" / "tools" / "check_extraction.py", "check_extraction"
+    ).match_baseline
     models: dict[str, Any] = {}
     problems_total = 0
 
     for name, why in UNDER_TEST.items():
         skp = args.corpus / name
+        # ⚠ A model the gate refuses is quarantined by H2, so look in both places — and say which.
         capture_path = args.captures / f"{skp.stem}.extraction.json"
+        quarantined = args.captures / "quarantine" / f"{skp.stem}.extraction.json"
+        if not capture_path.exists() and quarantined.exists():
+            capture_path = quarantined
         if not capture_path.exists():
             print(f"  SKIP {name} — no capture; run b2_h2_emission.py first")
             continue
@@ -144,7 +155,7 @@ def main() -> int:
         post = gate.version(stamps, found)
 
         problems: list[str] = []
-        offline_keys = baseline_model_keys(baseline, skp.stem)
+        offline_keys = baseline_model_keys(match_baseline, baseline, skp.stem)
         blob_keys = baseline_blob_keys(offline_keys)
         unread = [k for k in blob_keys if k not in document["counts"]["tables_found"]]
 
@@ -179,6 +190,7 @@ def main() -> int:
             "post_walk": {"allow": post.allow, "reason": post.reason, "note": post.note},
             "evidence": found,
             "reader_cli": reader,
+            "capture_read_from": str(capture_path.parent.name),
             "counts": document["counts"],
             "offline_model_keys": sorted(offline_keys) if offline_keys is not None else None,
             "offline_blob_keys": blob_keys,
@@ -213,16 +225,8 @@ def main() -> int:
             print(f"     ⚠ {problem}")
 
     passed = len(models) == len(UNDER_TEST) and not problems_total
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(
-        json.dumps(
-            {
-                "provenance": "third-party SDK re-host — feasibility-only evidence",
-                "gate": "poc/ext/dph_plus_poc/gate.rb, ported as gate.py",
-                "models": models,
-            },
-            indent=1,
-        )
+    write_result(
+        args.out, {"gate": "poc/ext/dph_plus_poc/gate.rb, ported as gate.py", "models": models}
     )
     refusals = sum(1 for row in models.values() if not row["post_walk"]["allow"])
     print(

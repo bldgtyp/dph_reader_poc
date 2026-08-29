@@ -49,8 +49,12 @@ import json
 import os
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
+
+from collector import comparable_digest
+from harness import write_result
 
 
 def run_leg(collector: Path, model: Path, cwd: Path, out: Path, relative: bool) -> dict[str, Any]:
@@ -95,26 +99,11 @@ from collector import SDK, Tables, capture, load_ruby_marshal, write_capture
 
 sdk = SDK(read_only=True)
 tables = Tables(load_ruby_marshal(Path(sys.argv[2])))
-capture(Path(sys.argv[3]), sdk, tables)          # the history
-document, _, _ = capture(Path(sys.argv[4]), sdk, tables)
-write_capture(document, Path(sys.argv[5]))
+capture(Path(sys.argv[3]), sdk, tables, apply_gate=False)          # the history
+result = capture(Path(sys.argv[4]), sdk, tables, apply_gate=False)
+write_capture(result.document, Path(sys.argv[5]))
 sdk.terminate()
 """
-
-#: The contract's own session-scoped field (§2). Removed for the second of leg C's two comparisons.
-SESSION_SCOPED = "entity_id"
-
-
-def without_session_ids(payload: bytes) -> str:
-    """Hash a capture with `entity_id` stripped — everything else compared as found."""
-    document = json.loads(payload.decode("utf-8"))
-    for section in ("faces", "edges", "windows"):
-        for record in document.get(section, []):
-            record.pop(SESSION_SCOPED, None)
-    return hashlib.sha256(
-        json.dumps(document, sort_keys=True, separators=(",", ":")).encode("utf-8")
-    ).hexdigest()
-
 
 def first_difference(a: bytes, b: bytes) -> str:
     """Where two captures first differ, with a little context. The shape before the failure."""
@@ -144,19 +133,41 @@ def main() -> int:
     # would come out a different length as well as a different value.
     second_root = args.work / "leg-b" / "nested" / "deeper"
 
-    # Leg C's "history" model is deliberately a different one from every model under test, and a
-    # small one, so the leg costs a fraction of a second per model.
-    history_model = args.corpus / "designph_test_COPY.skp"
+    corpus = sorted(args.corpus.glob("*.skp"))
+    if len(corpus) < 2:
+        print(f"VERDICT H7: FAIL — {len(corpus)} model(s) under {args.corpus}; leg C needs two")
+        return 1
+    # ⚠ Derived, not named. Leg C's "history" model is the SMALLEST staged model that is not the one
+    # under test — cheap, and it cannot silently vanish. An earlier version hardcoded a filename and
+    # skipped leg C when it was absent, which made `history_clean == len(history_rows)` read `0 == 0`
+    # and printed "0/0 stay byte-identical" as part of a PASS: the gate the docstring calls "the one
+    # that says what claim (d) actually covers", gone with no error.
+    history_model = min(corpus, key=lambda p: p.stat().st_size)
     runner = args.work / "_with_history.py"
     runner.parent.mkdir(parents=True, exist_ok=True)
     runner.write_text(WITH_HISTORY, encoding="utf-8")
 
+    # Legs A and B are fully independent — different working directories, different output paths,
+    # nothing read from each other. Running them concurrently halves a 24 s gate, and the diff's own
+    # H8 already measures that two collector processes in parallel produce captures identical to the
+    # sequential ones. (H8 itself stays strictly serial: it measures per-process wall time and RSS.)
     models: dict[str, Any] = {}
-    for model in sorted(args.corpus.glob("*.skp")):
-        a = run_leg(collector, model, first_root, first_root / f"{model.stem}.a.json", relative=False)
-        b = run_leg(
-            collector, model, second_root, second_root / "out" / f"{model.stem}.b.json", relative=True
-        )
+    with ThreadPoolExecutor(max_workers=8) as pool:
+        legs = {
+            model: (
+                pool.submit(
+                    run_leg, collector, model, first_root,
+                    first_root / f"{model.stem}.a.json", False,
+                ),
+                pool.submit(
+                    run_leg, collector, model, second_root,
+                    second_root / "out" / f"{model.stem}.b.json", True,
+                ),
+            )
+            for model in corpus
+        }
+    for model in corpus:
+        a, b = (future.result() for future in legs[model])
         row: dict[str, Any] = {"leg_a": a, "leg_b": b}
         if "error" in a or "error" in b:
             row["identical"] = False
@@ -169,7 +180,7 @@ def main() -> int:
                     (second_root / "out" / f"{model.stem}.b.json").read_bytes(),
                 )
         # -- leg C: the same model, read after another one in the same process -----
-        if history_model.exists() and history_model != model and "error" not in a:
+        if history_model != model and "error" not in a:
             third = args.work / "leg-c" / f"{model.stem}.c.json"
             third.parent.mkdir(parents=True, exist_ok=True)
             run = subprocess.run(
@@ -188,7 +199,10 @@ def main() -> int:
                 row["leg_c"] = {
                     "byte_identical_to_leg_a": fresh == after,
                     "identical_ignoring_session_ids": (
-                        without_session_ids(fresh) == without_session_ids(after)
+                        # `collector.comparable_digest` — the one definition of "a capture's
+                        # comparable form", beside the field it excludes.
+                        comparable_digest(json.loads(fresh.decode("utf-8")))
+                        == comparable_digest(json.loads(after.decode("utf-8")))
                     ),
                     "bytes": len(after),
                 }
@@ -218,36 +232,36 @@ def main() -> int:
     # ⚠ Leg C is allowed to differ — but only in `entity_id`. Anything else moving with process
     # history would be a real nondeterminism, and this is what says so.
     history_rows = [row["leg_c"] for row in models.values() if "leg_c" in row]
+    # Every model except the history model itself must have run leg C.
+    history_expected = len(models) - 1
     history_clean = sum(1 for row in history_rows if row.get("identical_ignoring_session_ids"))
     history_byte_identical = sum(1 for row in history_rows if row.get("byte_identical_to_leg_a"))
     passed = (
         bool(models)
         and identical == len(models)
-        and history_clean == len(history_rows)
+        and len(history_rows) == history_expected
+        and history_clean == history_expected
     )
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(
-        json.dumps(
-            {
-                "provenance": "third-party SDK re-host — feasibility-only evidence",
-                "method": (
-                    "two working directories, two --out paths, the model given absolutely on one "
-                    "leg and relatively on the other; byte equality, no canonicalisation"
-                ),
-                "leg_c_method": (
-                    "a different model read first in the same process, so the capture under test "
-                    "carries a process history; entity_id is expected to move and nothing else is"
-                ),
-                "models": models,
-            },
-            indent=1,
-        )
+    write_result(
+        args.out,
+        {
+            "history_model": history_model.name,
+            "method": (
+                "two working directories, two --out paths, the model given absolutely on one "
+                "leg and relatively on the other; byte equality, no canonicalisation"
+            ),
+            "leg_c_method": (
+                "a different model read first in the same process, so the capture under test "
+                "carries a process history; entity_id is expected to move and nothing else is"
+            ),
+            "models": models,
+        },
     )
     print(
         f"\nVERDICT H7: {'PASS' if passed else 'FAIL'} — {identical}/{len(models)} models capture "
         f"byte-identically from two different working directories and two different output paths; "
-        f"after another model in the same process {history_byte_identical}/{len(history_rows)} stay "
-        f"byte-identical and {history_clean}/{len(history_rows)} are identical once the contract's "
+        f"after another model in the same process {history_byte_identical}/{history_expected} stay "
+        f"byte-identical and {history_clean}/{history_expected} are identical once the contract's "
         f"session-scoped `entity_id` is excluded → {args.out}"
     )
     return 0 if passed else 1

@@ -44,8 +44,11 @@ import re
 from pathlib import Path
 from typing import Any
 
+import gate
+from a7_capability_probe import WRITE_SYMBOLS
 from collector import (
     CONTRACT_VERSION,
+    RECORD_SECTIONS,
     SDK,
     SHIP_TABLE_PREFIXES,
     SHIP_TABLES,
@@ -54,6 +57,7 @@ from collector import (
     load_ruby_marshal,
     write_capture,
 )
+from harness import write_result
 
 #: Contract §1. Exact — an extra key is drift just as surely as a missing one.
 ENVELOPE_KEYS = {
@@ -85,15 +89,10 @@ LIBRARY_KEYS = {"frame_types", "glazing_types"}
 #: `tracker_data` is designPH's own telemetry and is the one that must never leave the machine.
 NEVER_SHIPPED = ("tracker_data", "tfa_calc", "tfa_calc_ud", "frames_ud", "glazing_ud")
 
-#: Writers the binary exports. A read-only handle must refuse every one of them.
-WRITE_SYMBOLS = (
-    "SUModelSaveToFile",
-    "SUModelSaveToFileWithVersion",
-    "SUEntityAddAttributeDictionary",
-    "SUAttributeDictionarySetValue",
-    "SUModelFixErrors",
-    "SUModelMergeCoplanarFaces",
-)
+#: ⚠ `WRITE_SYMBOLS` is imported from `a7_capability_probe`, not restated. This gate's whole claim
+#: is *coverage of the write surface*, so a hand-copied list that fell behind the probe's would keep
+#: printing a green never-save verdict over a shrunken denominator — a check that quietly stops
+#: being able to fail, in the block carrying the phase's ⛔ invariant.
 
 #: An embedded filesystem path is client data and a determinism hazard at once — the same value
 #: that made `Sketchup::Model#path` untrustworthy. Scanned for in the serialised payload.
@@ -130,15 +129,17 @@ def check_shape(document: dict[str, Any]) -> list[str]:
     keys("counts", document.get("counts"), COUNTS_KEYS)
     keys("libraries", document.get("libraries"), LIBRARY_KEYS)
 
-    for section, expected in (
-        ("faces", FACE_KEYS), ("edges", EDGE_KEYS), ("windows", WINDOW_KEYS)
+    for section, expected in zip(
+        RECORD_SECTIONS, (FACE_KEYS, EDGE_KEYS, WINDOW_KEYS), strict=True
     ):
         records = document.get(section)
         if not isinstance(records, list):
             problems.append(f"{section}: not an array")
             continue
         odd = {frozenset(r) for r in records if isinstance(r, dict) and set(r) != expected}
-        for shape in list(odd)[:3]:
+        # ⚠ `sorted`, not set order: which three drifted shapes get reported must not vary between
+        # runs of a gate whose sibling exists to assert determinism.
+        for shape in sorted(odd, key=sorted)[:3]:
             problems.append(
                 f"{section}: a record is missing {sorted(expected - shape)} / has extra "
                 f"{sorted(set(shape) - expected)}"
@@ -199,46 +200,59 @@ def main() -> int:
     sdk = SDK(read_only=True)
 
     # -- 1. the structural never-save property -----------------------------
-    refused = []
+    # Two facts, not four: which writers the binary actually exports, and which of those this handle
+    # will hand back. `refused` is the complement of `resolved`, and "declared by the binding" is the
+    # same property from the other side (`_ReadOnlyLib` resolves a name iff it is in `declared`), so
+    # they were four names for two measurements in the block carrying the phase's ⛔ invariant.
+    exported = sorted(set(WRITE_SYMBOLS) - set(sdk.missing(list(WRITE_SYMBOLS))))
     resolved = []
-    for symbol in WRITE_SYMBOLS:
+    for symbol in exported:
         try:
             getattr(sdk.lib, symbol)
             resolved.append(symbol)
         except PermissionError:
-            refused.append(symbol)
-    exported = [s for s in WRITE_SYMBOLS if not sdk.missing([s])]
-    declared_writers = sorted(s for s in WRITE_SYMBOLS if s in sdk.declared)
+            pass
     save_proof = {
         "write_symbols_exported_by_the_binary": exported,
-        "refused_by_the_read_only_handle": refused,
         "resolved_by_the_read_only_handle": resolved,
-        "declared_by_the_binding": declared_writers,
+        "declared_by_the_binding": sorted(set(exported) & sdk.declared),
     }
     print(
-        f"{'✅' if not resolved and not declared_writers else '❌'} never-save: "
-        f"{len(exported)} writers exported by the binary, {len(refused)} refused by the handle, "
-        f"{len(declared_writers)} declared by the binding"
+        f"{'✅' if not resolved else '❌'} never-save: {len(exported)} writers exported by the "
+        f"binary, {len(exported) - len(resolved)} refused by the handle, "
+        f"{len(save_proof['declared_by_the_binding'])} declared by the binding"
     )
 
     tables = Tables(load_ruby_marshal(args.repo_root))
     models: dict[str, Any] = {}
     try:
         for path in sorted(args.corpus.glob("*.skp")):
-            document, notices, seconds = capture(path, sdk, tables)
-            out = args.out_dir / f"{path.stem}.extraction.json"
+            # ⚠ Read ungated on purpose — H2 grades the READ, over all 16 staged models. But a model
+            # the version gate refuses must not land in the directory the later gates glob: H9's
+            # headline claim is "on a refusal nothing is emitted", and the phase's own pipeline
+            # emitting one would contradict it. Refused captures go to `quarantine/`.
+            result = capture(path, sdk, tables, apply_gate=False)
+            document, notices, seconds = result.document, result.notices, result.seconds
+            assert document is not None  # apply_gate=False never refuses
+            refused = gate.version(
+                document["model"]["designph_versions"], gate.evidence(document)
+            ).refused
+            out = (args.out_dir / "quarantine" if refused else args.out_dir) / (
+                f"{path.stem}.extraction.json"
+            )
             size = write_capture(document, out)
-            payload = out.read_text(encoding="utf-8")
+            payload = json.dumps(document, separators=(",", ":"))
 
             problems = check_shape(document) + check_leakage(document, payload)
             counts = document["counts"]
-            oversize = [
-                f"{section} {len(json.dumps(document[section]))} bytes"
-                for section in ("faces", "edges", "windows", "libraries", "tables", "unclassified")
-                if len(json.dumps(document[section])) > LOG_PAYLOAD_BYTES
-            ]
+            sizes = {
+                section: len(json.dumps(document[section]))
+                for section in (*RECORD_SECTIONS, "libraries", "tables", "unclassified")
+            }
+            oversize = [f"{k} {v} bytes" for k, v in sizes.items() if v > LOG_PAYLOAD_BYTES]
             models[path.name] = {
                 "bytes": size,
+                "quarantined_by_the_version_gate": refused,
                 "seconds": round(seconds, 2),
                 "counts": counts,
                 "designph_versions": document["model"]["designph_versions"],
@@ -248,7 +262,7 @@ def main() -> int:
             }
             flag = "✅" if not problems else "❌"
             print(
-                f"{flag} {path.name}: {counts['faces_classified']} classified · "
+                f"{flag} {'⚪ ' if refused else ''}{path.name}: {counts['faces_classified']} classified · "
                 f"{counts['edges_tagged']} edges · {counts['windows_found']} windows · "
                 f"{len(document['tables'])} tables · {size} bytes · {seconds:.2f} s"
             )
@@ -260,24 +274,14 @@ def main() -> int:
     finally:
         sdk.terminate()
 
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(
-        json.dumps(
-            {
-                "provenance": "third-party SDK re-host — feasibility-only evidence",
-                "never_save": save_proof,
-                "models": models,
-            },
-            indent=1,
-        )
-    )
+    write_result(args.out, {"never_save": save_proof, "models": models})
 
     failures = sum(1 for row in models.values() if row["problems"])
-    passed = bool(models) and not failures and not resolved and not declared_writers
+    passed = bool(models) and not failures and not resolved
     print(
         f"\nVERDICT H2: {'PASS' if passed else 'FAIL'} — {len(models)} models emitted contract v2, "
         f"{failures} with shape or leakage problems; the read-only handle refused "
-        f"{len(refused)}/{len(WRITE_SYMBOLS)} writers the binary exports → {args.out}"
+        f"{len(exported) - len(resolved)}/{len(exported)} writers the binary exports → {args.out}"
     )
     return 0 if passed else 1
 

@@ -30,9 +30,12 @@ from __future__ import annotations
 
 import ctypes
 import ctypes.util
+import importlib.util
 import re
+import sys
 from ctypes import POINTER, byref, c_char, c_double, c_int32, c_int64, c_size_t, c_void_p
 from pathlib import Path
+from typing import Any
 
 # SUResult codes we name. The full enum is larger; these are the ones that carry meaning here.
 SU_ERROR_NONE = 0
@@ -98,6 +101,24 @@ class SUResultError(RuntimeError):
     def __init__(self, fn: str, code: int) -> None:
         super().__init__(f"{fn} -> {RESULT_NAMES.get(code, f'SU_ERROR_{code}')} ({code})")
         self.fn, self.code = fn, code
+
+
+def load_module(path: Path, name: str) -> Any:
+    """Import a module from a path — the one copy of the `importlib` dance.
+
+    Four hand-written copies of these seven lines existed across the spike scripts, two of them
+    defining the *same* `load_ruby_marshal` and both registering `sys.modules["ruby_marshal"]`, so
+    a script importing both got whichever ran last. The repo's own rule — call the library's own
+    function, even when it is one line — applies to your own loader; the boilerplate is exactly
+    what makes copying feel cheaper than importing.
+    """
+    spec = importlib.util.spec_from_file_location(name, path)
+    if spec is None or spec.loader is None:
+        raise SystemExit(f"cannot import {name} from {path}")
+    module = importlib.util.module_from_spec(spec)
+    sys.modules[name] = module
+    spec.loader.exec_module(module)
+    return module
 
 
 def _ref(name: str) -> type[ctypes.Structure]:
@@ -192,13 +213,14 @@ class SDK:
                 "Stage it first — see planning/HEADLESS/RESULTS/HEADLESS-A_results.md §1.1"
             )
         self._raw_lib = ctypes.CDLL(str(self.path))
-        self.lib = self._raw_lib
         self.headers = self.path.parent / "Headers"
         self._load_enums()
         self._configure()
-        self.read_only = read_only
-        if read_only:
-            self.lib = _ReadOnlyLib(self._raw_lib, self.declared)
+        # Assigned exactly once. An earlier version bound `self.lib` to the raw library first so
+        # `_configure` could use it, then rebound it to the wrapper — leaving `self.lib` meaning two
+        # different things at two points of one constructor, in the class whose whole purpose is
+        # that the guarded handle is the only one callers touch.
+        self.lib = _ReadOnlyLib(self._raw_lib, self.declared) if read_only else self._raw_lib
         self._raw_lib.SUInitialize()
         self._initialized = True
 
@@ -232,18 +254,11 @@ class SDK:
                 target[value] = member.group(1)
                 value += 1
 
-    def ref_type(self, name: str) -> int:
-        """The `SURefType` value for a member name — never a numeric literal in calling code."""
-        for value, member in REF_TYPES.items():
-            if member == name:
-                return value
-        raise KeyError(f"SURefType_{name} is not in this SDK's headers")
-
 
     def _configure(self) -> None:
         """Declare argtypes/restype for everything used. ctypes defaults to int for untyped returns,
         which silently truncates a returned pointer on 64-bit — so nothing here is left undeclared."""
-        L = self.lib
+        L = self._raw_lib
         sig = [
             ("SUInitialize", [], None),
             ("SUTerminate", [], None),

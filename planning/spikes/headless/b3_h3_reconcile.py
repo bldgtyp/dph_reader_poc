@@ -10,11 +10,18 @@ key by key, so "did the walk find everything?" has a real answer rather than a f
 re-implements any of it — this wrapper exists to produce one verdict line and, more importantly, to
 say out loud which models the harness **cannot grade**.
 
-⚠ **Two of the sixteen staged models have no offline baseline** — `2618 Lavoie` (staged purely as
-the 146 MB scale probe) and the designPH 1.0.30 sample. The harness reports them as FAIL, and that
-is the harness being right: it refuses to grade a model it has no ground truth for. Counting that
-as a Spike-B failure would be scoring the *absence of evidence* as *evidence of absence*, so they
-are reported separately as **ungradeable** and the pass is stated over the 14 that can be graded.
+⚠ **Some staged models have no offline baseline** — `2618 Lavoie` is staged purely as the 146 MB
+scale probe. The harness would report them as FAIL, and that is the harness being right: it refuses
+to grade a model it has no ground truth for. Counting that as a Spike-B failure would be scoring the
+*absence of evidence* as *evidence of absence*.
+
+★ **So the partition happens BEFORE the subprocess, from the baseline itself.** The harness is only
+handed captures it can grade, and the rest are reported as ungradeable from the partition. An
+earlier version passed all of them and then un-failed two by matching a substring of the harness's
+own sentence — which (a) makes a wording change in a POC file this phase must not modify silently
+reclassify a real failure, and (b) removed whichever model's header was current, so the phrase
+appearing anywhere in a genuinely failing report would drop that model from grading with the
+verdict still green.
 
 ⚠ **A firing check gets explained before it gets touched.** The reconciler failed on three of four
 real captures during the POC and the data was right every time; its three false-alarm classes are
@@ -33,10 +40,19 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import Any
 
-#: The harness's own line for a model it has no baseline for. Matched exactly rather than by
-#: guessing at the model name, so a genuine failure can never be mistaken for this one.
-NO_BASELINE = "has an offline baseline to reconcile against"
+from harness import write_result
+from sdk import load_module
+
+
+#: `check_extraction.py`'s own model↔baseline matcher, imported rather than re-implemented: it
+#: normalises the `_COPY` / ` copy` / `-copy` suffixes the staged corpus actually uses, and a
+#: narrower local copy silently answers "no baseline" for a name it does not know.
+def baseline_covers(match_baseline: Any, baseline: dict[str, Any], capture: Path) -> bool:
+    document = json.loads(capture.read_text(encoding="utf-8"))
+    return match_baseline(document["model"]["file_name"], baseline) is not None
+
 
 HEADER = re.compile(r"^  == (?P<name>.+?) ==  (?P<verdict>PASS|FAIL)\s*$")
 
@@ -51,52 +67,59 @@ def main() -> int:
     parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[3])
     args = parser.parse_args()
 
-    harness = args.repo_root / "poc" / "tools" / "check_extraction.py"
+    harness_path = args.repo_root / "poc" / "tools" / "check_extraction.py"
     captures = sorted(args.captures.glob("*.extraction.json"))
     if not captures:
         print(f"VERDICT H3: FAIL — no captures under {args.captures}")
         return 1
 
+    check_extraction = load_module(harness_path, "check_extraction")
+    baseline = json.loads(args.baseline.read_text(encoding="utf-8"))
+    gradeable = [
+        c for c in captures if baseline_covers(check_extraction.match_baseline, baseline, c)
+    ]
+    ungradeable = sorted(
+        c.name.removesuffix(".extraction.json") for c in captures if c not in gradeable
+    )
+
     run = subprocess.run(
-        [sys.executable, str(harness), "--baseline", str(args.baseline), *map(str, captures)],
+        [sys.executable, str(harness_path), "--baseline", str(args.baseline), *map(str, gradeable)],
         capture_output=True,
         text=True,
     )
     report = run.stdout
 
     graded: dict[str, str] = {}
-    ungradeable: list[str] = []
-    current: str | None = None
     for line in report.splitlines():
         header = HEADER.match(line)
         if header:
-            current = header["name"]
-            graded[current] = header["verdict"]
-            continue
-        if NO_BASELINE in line and line.strip().startswith("FAIL") and current:
-            ungradeable.append(current)
-            graded.pop(current, None)
+            graded[header["name"]] = header["verdict"]
 
     failed = sorted(name for name, verdict in graded.items() if verdict == "FAIL")
-    passed = bool(graded) and not failed
+    # ⚠ The harness's exit status counts too. An earlier version discarded it and graded only the
+    # prose it printed — the same shape as the POC banner that stayed green for the life of its
+    # harness by rendering a different field from the one it checked.
+    passed = (
+        bool(graded)
+        and not failed
+        and len(graded) == len(gradeable)
+        and run.returncode == 0
+    )
 
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(
-        json.dumps(
-            {
-                "provenance": "third-party SDK re-host — feasibility-only evidence",
-                "harness": str(harness.relative_to(args.repo_root)),
-                "graded": graded,
-                "ungradeable_no_offline_baseline": sorted(ungradeable),
-                "report": report,
-            },
-            indent=1,
-        )
+    write_result(
+        args.out,
+        {
+            "harness": str(harness_path.relative_to(args.repo_root)),
+            "harness_exit_code": run.returncode,
+            "graded": graded,
+            "ungradeable_no_offline_baseline": ungradeable,
+            "report": report,
+        },
     )
 
     for name in sorted(graded):
         print(f"{'✅' if graded[name] == 'PASS' else '❌'} {name}: {graded[name]}")
-    for name in sorted(ungradeable):
+    for name in ungradeable:
         print(f"⚪ {name}: UNGRADEABLE — no offline baseline, so this model can grade nothing")
     print(
         f"\nVERDICT H3: {'PASS' if passed else 'FAIL'} — {len(graded) - len(failed)}/{len(graded)} "

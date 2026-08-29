@@ -61,23 +61,16 @@ model that masked three separate reconciliation defects during the POC.
 from __future__ import annotations
 
 import argparse
-import importlib.util
 import json
 import math
 import re
-import sys
+from collections import Counter
 from pathlib import Path
 from typing import Any
 
-from collector import MARSHAL_PREFIX, SDK, HeadlessCollector, Tables, load_ruby_marshal
-
-CAPTURED = (
-    "adelphi-designph_COPY",
-    "2414_Bluff Reach_COPY",
-    "2523 Wellington_COPY",
-    "250703 - Linde Residence_COPY",
-    "250708_COPY",
-)
+from collector import RECORD_SECTIONS, SDK, HeadlessCollector, Tables, load_ruby_marshal
+from harness import captured_models, write_result
+from sdk import load_module
 
 #: Stratum B — fields compared as coordinates rather than as values.
 GEOMETRY_FIELDS = {
@@ -131,14 +124,9 @@ def offline_reader(repo_root: Path) -> Any:
     pattern is `BAh[A-Za-z0-9+/=\r\n]{40,}` with `re.DOTALL`, and importing it is the same rule as
     calling a library's own predicate rather than approximating it.
     """
-    path = repo_root / "00_Context" / "tools" / "skp_decode_tables.py"
-    spec = importlib.util.spec_from_file_location("skp_decode_tables", path)
-    if spec is None or spec.loader is None:
-        raise SystemExit(f"cannot import {path}")
-    module = importlib.util.module_from_spec(spec)
-    sys.modules["skp_decode_tables"] = module
-    spec.loader.exec_module(module)
-    return module
+    return load_module(
+        repo_root / "00_Context" / "tools" / "skp_decode_tables.py", "skp_decode_tables"
+    )
 
 
 
@@ -188,37 +176,33 @@ def deviation(mine: Any, theirs: Any, scale: float) -> float | None:
 
 
 def stored_tables_via_sdk(sdk: SDK, tables: Tables, path: Path) -> dict[str, bytes]:
-    """The model-level Marshal blobs as the **C SDK** hands them over — the stored base64."""
-    collector = HeadlessCollector(sdk, tables)
+    """The model-level Marshal blobs as the **C SDK** hands them over — the stored base64.
+
+    ⚠ Through the collector's own public `model_blobs`, not a local copy of its predicate. Stratum
+    A′ is the only byte-level transport claim in Spike B, and an earlier version made it about a
+    rule that lived in the gate: if the collector's blob selection ever changed, the gate would keep
+    testing the old one and report the transport as clean about bytes the collector no longer ships.
+    """
     model = sdk.open_model(path)
     try:
-        dictionary = collector._model_dictionary(model)
-        if dictionary is None:
-            return {}
-        out: dict[str, bytes] = {}
-        for key in collector.walker.dict_keys(dictionary):
-            got = collector.walker.typed_value(dictionary, key)
-            if got and got[0] == "String" and isinstance(got[1], bytes):
-                if got[1].startswith(MARSHAL_PREFIX):
-                    out[key] = got[1]
-        return out
+        return HeadlessCollector(sdk, tables).model_blobs(model)
     finally:
         sdk.close_model(model)
 
 
-def stored_tables_offline(offline: Any, path: Path, keys: list[str]) -> dict[str, bytes]:
+def stored_tables_offline(blob: bytes, offline: Any, keys: list[str]) -> dict[str, bytes]:
     """The same blobs as the **offline binary reader** finds them in `model.dat`.
 
     Nothing about this route touches the SDK: a `.skp` is a zip, the attributes live in `model.dat`,
-    and designPH's blob is the next self-delimiting base64 run after the key name. Both the archive
-    read and the blob pattern come from `00_Context/tools/skp_decode_tables.py` itself.
+    and designPH's blob is the next self-delimiting base64 run after the key name. The blob pattern
+    comes from `00_Context/tools/skp_decode_tables.py` itself, and `model.dat` — 5.7 to 50.5 MB
+    across the corpus — is read once by the caller and handed to both checks.
 
     ⚠ It is a **heuristic**: it takes the first occurrence of the key name that is followed by a
     blob, and the file holds the *historical union* of everything that key ever was. So a difference
     here is a statement about history as much as about the transport, which is why this stratum is
     reported and never grades the gate on its own.
     """
-    blob = offline.model_dat(path)
     out: dict[str, bytes] = {}
     for key in keys:
         for match in re.finditer(re.escape(key.encode()), blob, re.DOTALL):
@@ -229,15 +213,14 @@ def stored_tables_offline(offline: Any, path: Path, keys: list[str]) -> dict[str
     return out
 
 
-def stored_blobs_are_verbatim(offline: Any, path: Path, via_sdk: dict[str, bytes]) -> dict[str, Any]:
+def stored_blobs_are_verbatim(blob: bytes, via_sdk: dict[str, bytes]) -> dict[str, Any]:
     """★ The decisive transport check: does each SDK-returned blob appear **verbatim** in the file?
 
     This is the one byte-level claim that needs no heuristic and no second decoder. If the C SDK had
     truncated a value — the named hazard this whole gate was designed around — the exact byte run
     would not be findable in `model.dat`. Either the bytes are in the file or they are not.
     """
-    raw = offline.model_dat(path)
-    found = [key for key, value in via_sdk.items() if value in raw]
+    found = [key for key, value in via_sdk.items() if value in blob]
     return {
         "blobs": len(via_sdk),
         "found_verbatim_in_model_dat": len(found),
@@ -247,12 +230,12 @@ def stored_blobs_are_verbatim(offline: Any, path: Path, via_sdk: dict[str, bytes
 
 def compare(headless: dict[str, Any], live: dict[str, Any]) -> dict[str, Any]:
     """One model's three strata."""
-    buckets: dict[str, int] = {}
+    buckets: Counter[str] = Counter()
     unexplained: list[str] = []
     worst: dict[str, float] = {}
 
-    def bucket(name: str) -> None:
-        buckets[name] = buckets.get(name, 0) + 1
+    def bucket(name: str, count: int = 1) -> None:
+        buckets[name] += count
 
     # -- envelope ---------------------------------------------------------
     if headless["generated_by"] != live["generated_by"]:
@@ -281,7 +264,7 @@ def compare(headless: dict[str, Any], live: dict[str, Any]) -> dict[str, Any]:
         unexplained.append("unclassified.tagged_faces: differs by content (stratum A, exact)")
 
     # -- the three record sections ----------------------------------------
-    for section in ("faces", "edges", "windows"):
+    for section in RECORD_SECTIONS:
         mine = {r["id"]: r for r in headless[section]}
         theirs = {r["id"]: r for r in live[section]}
         for missing in sorted(set(theirs) - set(mine)):
@@ -293,8 +276,8 @@ def compare(headless: dict[str, Any], live: dict[str, Any]) -> dict[str, Any]:
         derived = DERIVED_FIELDS[section]
         for record_id in sorted(set(mine) & set(theirs)):
             a, b = mine[record_id], theirs[record_id]
-            for _ in range(signed_zero_disagreements(a, b)):
-                bucket(BUCKET_SIGNED_ZERO)
+            if disagreements := signed_zero_disagreements(a, b):
+                bucket(BUCKET_SIGNED_ZERO, disagreements)
             for field in set(a) | set(b):
                 if a.get(field) == b.get(field):
                     continue
@@ -328,7 +311,7 @@ def compare(headless: dict[str, Any], live: dict[str, Any]) -> dict[str, Any]:
     # wall equal its mirror. But whether the two readers happen to *emit* in the same order is a
     # real fact about them, so it is measured and named rather than quietly normalised away.
     order: dict[str, bool] = {}
-    for section in ("faces", "edges", "windows"):
+    for section in RECORD_SECTIONS:
         order[section] = [r["id"] for r in headless[section]] == [r["id"] for r in live[section]]
     order["unclassified.tagged_faces"] = [
         r["id"] for r in headless["unclassified"]["tagged_faces"]
@@ -338,7 +321,7 @@ def compare(headless: dict[str, Any], live: dict[str, Any]) -> dict[str, Any]:
 
     return {
         "emission_order_matches_live": order,
-        "named_differences": buckets,
+        "named_differences": dict(buckets),
         "unexplained": unexplained,
         "worst_geometry_deviation_mm": {k: v * 1000 for k, v in sorted(worst.items())},
     }
@@ -358,9 +341,10 @@ def main() -> int:
     sdk = SDK(read_only=True)
     tables = Tables(load_ruby_marshal(args.repo_root))
     offline = offline_reader(args.repo_root)
+    expected_models = captured_models(args.fixtures)
     models: dict[str, Any] = {}
     try:
-        for name in CAPTURED:
+        for name in expected_models:
             headless_path = args.captures / f"{name}.extraction.json"
             live_path = args.fixtures / f"{name}.extraction.json"
             if not headless_path.exists() or not live_path.exists():
@@ -375,12 +359,14 @@ def main() -> int:
             transport: dict[str, Any] = {"checked": False}
             if skp.exists():
                 via_sdk = stored_tables_via_sdk(sdk, tables, skp)
-                found = stored_tables_offline(offline, skp, sorted(via_sdk))
+                # `model.dat` is 5.7-50.5 MB; read it once and hand the bytes to both checks.
+                model_dat = offline.model_dat(skp)
+                found = stored_tables_offline(model_dat, offline, sorted(via_sdk))
                 shared = sorted(set(via_sdk) & set(found))
                 equal = [k for k in shared if via_sdk[k] == found[k]]
                 transport = {
                     "checked": True,
-                    "verbatim": stored_blobs_are_verbatim(offline, skp, via_sdk),
+                    "verbatim": stored_blobs_are_verbatim(model_dat, via_sdk),
                     "sdk_blobs": len(via_sdk),
                     "offline_blobs_matched_by_key": len(shared),
                     "byte_identical": len(equal),
@@ -416,24 +402,14 @@ def main() -> int:
         sdk.terminate()
 
     unexplained = sum(len(row["unexplained"]) for row in models.values())
-    passed = len(models) == len(CAPTURED) and not unexplained
-    args.out.parent.mkdir(parents=True, exist_ok=True)
-    args.out.write_text(
-        json.dumps(
-            {
-                "provenance": "third-party SDK re-host — feasibility-only evidence",
-                "tolerance_m": TOLERANCE_M,
-                "models": models,
-            },
-            indent=1,
-        )
-    )
+    passed = len(models) == len(expected_models) and not unexplained
+    write_result(args.out, {"tolerance_m": TOLERANCE_M, "models": models})
     worst = max(
         (mm for row in models.values() for mm in row["worst_geometry_deviation_mm"].values()),
         default=0.0,
     )
     print(
-        f"\nVERDICT H4: {'PASS' if passed else 'FAIL'} — {len(models)}/{len(CAPTURED)} models "
+        f"\nVERDICT H4: {'PASS' if passed else 'FAIL'} — {len(models)}/{len(expected_models)} models "
         f"compared, {unexplained} unexplained difference(s); worst geometry deviation anywhere "
         f"{worst:.6f} mm → {args.out}"
     )
