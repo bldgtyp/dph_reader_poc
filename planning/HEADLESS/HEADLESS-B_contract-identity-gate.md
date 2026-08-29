@@ -1,9 +1,10 @@
 # HEADLESS-B (Spike B) — the contract-v2 identity gate: same model, same capture, same HBJSON
 
 DATE: 2026-08-28
-STATUS: Scoped — provisional. **Blocked on Spike A** (hard rule 7), and §2's revision pass is the
-mandatory first step: this plan was written *before* Spike A ran and must be reconciled against
-`RESULTS/HEADLESS-A_results.md` before anything here executes.
+STATUS: ▶ **Unblocked; H0 revision pass DONE 2026-08-29 (§2.1). Nothing else has run.**
+Spike A passed ([`RESULTS/HEADLESS-A_results.md`](RESULTS/HEADLESS-A_results.md)) and pre-answered
+more of this plan than it anticipated — **H1 is effectively already closed** (§2.1). ⚠ Spike A ran
+on a **third-party SDK build**, so everything here inherits that provisional footing.
 AUTHOR: Ed May (drafted by Claude)
 
 Context, rules, evidence base:
@@ -37,16 +38,55 @@ Spike B adds two new ones, and tests them separately:
 Before any code, re-read this plan against `RESULTS/HEADLESS-A_results.md` and revise it. The
 sections most likely to need changes, flagged now:
 
-| Spike-A finding | What it changes here |
-|---|---|
-| **G1 fallback** (no glue query; geometric host resolution) | H4/H5's aperture claims weaken from "stored fact" to "inference with a stated limit" — the capture must then *report* each host resolution's residual (the projection-absorbs-the-bug rule), and the identity diff must compare resolved hosts as a derived field, not a read one |
-| **G6** (`SUFaceGetArea` gross, not net) | the reconciler's area cross-check expectations flip on the 16 host faces. A's G6 decision is already made: the collector records the SDK value **verbatim**, and the measured semantics becomes H4's named bucket. May still need a contract *note* (not a schema change) recording which semantics `face.area` carries per capture device |
-| **Binding route** (pyslapi vs ctypes) | tooling only; no gate changes |
-| **Entity-ID semantics** (whatever the G-work reveals about `SUEntityGetID` / persistent IDs) | H1's join strategy — see below |
-| **Any gate that closed PASS WITH CHANGES** | carry its stated limitation into the matching H-gate explicitly, so a firing check can be attributed |
-
 Record the revision as a dated changelog block at the bottom of this file. An unrevised plan
 executing after Spike A is the "believed once written down" failure mode the POC paid for twice.
+
+### 2.1 The revision, done — 2026-08-29
+
+Every row this section anticipated resolved in the *favourable* direction, and two of them dissolve
+the gate they were written for.
+
+| Anticipated | What Spike A actually found | Effect here |
+|---|---|---|
+| **G1 fallback** — no glue query, geometric host resolution | ✅ **Not needed.** `SUComponentInstanceGetAttachedToDrawingElements` resolved **239/239** windows on five real models; distinct-host counts match the captures exactly | **Row void.** H4/H5's aperture claims stay a *stored fact*, not an inference. No residual reporting, no derived-field comparison |
+| **G6** — `SUFaceGetArea` gross, not net | ✅ **Neither guess.** `SUFaceGetArea` is the **LOCAL** area; `SUFaceGetAreaWithTransform` is the world area and equals live `face.area(transform)` on **545/545** faces | **H4's named area bucket is EMPTY** — provided the collector uses the WithTransform variant. A contract *note* is still worth proposing: which call a capture device used |
+| **Binding route** | ctypes on the newest available SDK, as planned. pyslapi's *binding* unused; only its framework | tooling only, as expected |
+| **Entity-ID semantics** | ★ **`SUEntityGetPersistentID` exists, and A already proved the join end to end** | **H1 is effectively closed** — see below |
+| **PASS WITH CHANGES carry-overs** | none — all eight gates closed clean | nothing to carry |
+
+★ **H1 is pre-answered, and this is the single biggest change to Spike B's shape.** Spike A's G7
+work matched **545/545 faces and 239/239 windows with 0 unmatched**, joining purely on the
+path-qualified id it *reconstructed* from `SUEntityGetPersistentID`. That id is byte-identical to
+the one `collector.rb:597` writes. So H1's "right answer" (persistent IDs align 1:1) is already
+measured on all five models, and its fallback matcher is not needed. H1 remains in the sequence as
+a **cheap explicit assertion**, not an open question.
+
+⚠ **Three new constraints Spike A discovered, which this plan did not anticipate and which H2/H4/H7
+must now carry:**
+
+1. ⛔ **The reader mutates the in-memory model.** `SUEntityGetAttributeDictionary` is a
+   get-or-CREATE (its own header says so), and it is the *only* complete way to test for a
+   dictionary — the read-only enumeration silently under-reports by up to 41%. **H2 must assert the
+   collector never calls `SUModelSaveToFile`**, as a check, not an intention — the same discipline
+   H2 already applies to `tracker_data`. This is hard rule 2's survival condition.
+2. **designPH's Marshal tables are stored as BASE64.** H4's "attribute payloads byte-equal (Marshal
+   blobs included)" must say **which form** it compares. Compare the **stored base64 string**, which
+   is what the contract carries and what a byte-equality claim can actually mean; decoding first
+   would compare two decoders, not two captures.
+3. ★ **`SUFaceGetNumOpenings` is a second, independent host test** the Ruby collector never had
+   (> 0 on exactly the 81 host faces; Ruby's `loops.size > 1` is true on 1 of 81). **H4 should
+   cross-check the glue-resolved host set against it** — a free corroboration of the aperture claim
+   that costs one call per face.
+
+**H8 already has numbers**: ≈3-4 s per model for 3-11 MB files on an M-series laptop, whole corpus
+in under 4 s for the count gates. Spike A also surfaced the scale probe H8 will eventually want —
+`2618 {BP} Lavoie Certification.skp`, **146 MB**, ~13× the largest baselined model, currently
+unstaged because it has no baseline and no live capture.
+
+⚠ **And the caveat that outranks all of the above:** Spike A ran on a **third-party re-host** of
+Trimble's SDK, because the official one is behind an unanswered access form. Spike B inherits that
+footing exactly. A PASS here is a strong feasibility result and **not** a commercial green light
+until the suite is re-run on Trimble's own build.
 
 ## 3. What already exists (reused, not rebuilt)
 
@@ -79,7 +119,9 @@ executing after Spike A is the "believed once written down" failure mode the POC
 
 ### H0 — Revision pass
 
-§2, done and recorded. Nothing below starts first.
+✅ **DONE 2026-08-29 — §2.1.** Outcome: G1's fallback row is void, G6's area bucket is empty, H1 is
+pre-answered, and three new constraints (never-save, base64 payload comparison, `SUFaceGetNumOpenings`
+cross-check) are folded into H2/H4.
 
 ### H1 — Entity identity: the join key
 
@@ -88,6 +130,11 @@ live captures carry the Ruby side's entity identifiers; whether the C SDK's IDs 
 persistent IDs) coincide with them is unknown until measured — and pholio's identity rule (ids
 come from the capture device, never minted per export) makes this the gate that decides what the
 *service's* stable IDs will be.
+
+★ **Largely answered by Spike A already** (§2.1): the path-qualified id reconstructed from
+`SUEntityGetPersistentID` matched the live captures on 545/545 faces and 239/239 windows, 0
+unmatched, on all five models. What remains is to assert it explicitly and record per-file
+persistent-id coverage.
 
 - **Method**: for Adelphi + Bluff Reach, extract (entity-id, persistent-id, dict-fingerprint) per
   tagged entity from both capture routes; measure the overlap. Three links to verify on the way
@@ -223,3 +270,16 @@ before any Spike C work (hard rule 7).
   carries A's verbatim-record decision; H1 gains the three verified links (API names, in-file PID
   version caveat, path composition) and the capture-grep pre-step; H7 runs from two CWDs / two
   `--out`s.
+
+---
+
+## Changelog
+
+- 2026-08-28 — drafted, pre-Spike-A, deliberately provisional.
+- 2026-08-29 — **H0 revision pass done (§2.1)**, reconciled against `RESULTS/HEADLESS-A_results.md`.
+  Two anticipated rows dissolved (G1's geometric fallback is not needed; G6's area bucket is empty),
+  **H1 is pre-answered** by A's 545/545 + 239/239 id join, and three unanticipated constraints were
+  folded in: the collector must assert it never saves (the attribute read mutates the in-memory
+  model), H4 compares the **stored base64** payload rather than decoded Marshal, and
+  `SUFaceGetNumOpenings` becomes a free second host cross-check. H8 inherits A's timings. The whole
+  plan now carries A's third-party-SDK caveat.
