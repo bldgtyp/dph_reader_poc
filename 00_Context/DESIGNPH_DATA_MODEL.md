@@ -1148,6 +1148,31 @@ shading heuristic is designed (PRD §7.2, and `HEADLESS_VIABILITY.md` §4.1).
 capital K where 2.x writes `klima_ID`. Key *names* drift across major versions; a reader keyed on
 exact strings will lose data silently on an old file.
 
+⭐ **And 1.0.30 has no designPH windows in the 2.x sense at all** *(measured 2026-08-29, Spike B)*.
+The 2.x window predicate is "a `ComponentInstance` whose `dynamic_attributes` carries
+`frametypeid`" (§9). On this model:
+
+| | 1.0.30 sample | Adelphi (2.1.15), for contrast |
+|---|---:|---:|
+| component-instance entities | 111 | 1343 |
+| …carrying a `dynamic_attributes` dictionary | **109** | 94 |
+| …carrying `frametypeid` | **0** | 46 |
+| designPH-specific DC keys seen | **none** | `framewidth`, `framewidthl/r/top/bot`, `framedepth`, … |
+
+The 109 dictionaries hold only SketchUp's own Dynamic-Component editor keys — `_name`, `_x_formula`,
+`_lengthunits`, `_hasbehaviors` — i.e. they are ordinary DCs (the sample model's furniture and
+trees), not designPH windows with the designPH keys stripped.
+
+⚠ **What this does NOT establish**, and the distinction matters: whether designPH 1.x *had* no
+window mechanism, or had one that stored data somewhere this reader did not look, or whether this
+particular sample simply never had windows added. **One model cannot separate those three**, and
+this is the corpus's only 1.x file. Recorded as measured, not generalised.
+
+Practically it changes nothing today — the POC's version gate **refuses** a 1.x stamp by name before
+any of this is reached (`HEADLESS_VIABILITY.md` §4.9) — but it is the first thing to check if
+designPH 1.x support is ever proposed, and it is a concrete reason to expect **more** than key
+renaming between major generations.
+
 ### 13.2 The census — which keys, on which entity type, in how many of 16 models
 
 | key | models | entities | note |

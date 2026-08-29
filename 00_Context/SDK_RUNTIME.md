@@ -285,13 +285,38 @@ definitions and ~206k edge entities.
 |---|---|
 | whole 16-model corpus (230 MB) | **11.8 s**, one process per model |
 | slowest single model | **2.49 s** (`2618 Lavoie`, 139 MB) |
-| heaviest peak RSS | **717 MB** (same) |
+| heaviest peak RSS | **717 MB** (same) · process floor with the SDK loaded and no model open: **63 MB** |
+| ⚠ share of read time spent in `SUModelCreateFromFile` | **43 %** across eight models (35–59 %) |
+| ⚠ reading the model's designPH version stamps, once open | **0.000 s** — free |
+| ⛔ memory returned by `SUModelRelease` | **none** — see below |
 | two models open at once in one process | ✅ works, 761 MB peak |
 | two processes in parallel | ✅ works |
 | two threads in one process | ✅ works, no errors — ⚠ **one observation, not a thread-safety proof** |
 
 ⚠ Per-model peak RSS **requires one process per model**. `ru_maxrss` never comes down, so the
 capability sweep's 851 MB is "the run peaked here", not "this model costs that".
+
+⛔ **And that is not only a measurement artefact — the memory really is not released.** Live RSS
+through one process, reading five models and closing each:
+
+```
+SDK loaded, no model open                              63 MB
+2618 Lavoie      open  631 MB   read  715 MB   close  571 MB
+2414 Bluff Reach open  721 MB   read  724 MB   close  723 MB
+2523 Wellington  open  725 MB   read  727 MB   close  726 MB
+2605 MacDonough  open  726 MB   read  726 MB   close  726 MB
+adelphi-designph open  726 MB   read  726 MB   close  726 MB
+```
+
+The memory is in the **open** (63 → 631 MB), not the walk (631 → 715 MB) — the same shape as the
+timing. ✅ It is *not* an unbounded leak: repeated reads of one model plateau (296 → 295 → 407 → 407
+→ 407 MB), and the process settles flat again after a large model. It ratchets to a high-water mark
+and stops. ⚠ Two heavy models held open together are close to **additive** (63 → 631 → 798 MB, and
+973 MB after reading both), not shared.
+
+★ Consequence for any service: **a persistent worker converges on the peak of the heaviest model it
+has ever seen, plus fragmentation, and holds it for the life of the process.** Size for that, or
+recycle. `HEADLESS_VIABILITY.md` §2.4 and §5.
 
 ## 4f. ⚠ Two values that are not stable, and both mattered
 
