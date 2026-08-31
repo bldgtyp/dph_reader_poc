@@ -34,6 +34,10 @@ planning/spikes/**/.chrome-profile/
 # Manifest-tracked, never committed — same rule as pocs/01_sketchup-export/_private/.
 planning/spikes/headless/_private/
 
+# ⚠ CLIENT DATA. POC #3 (library-import) scratch: staged LIBIMPORT copies, rehearsal state,
+# table dumps. Manifest-tracked, never committed.
+planning/spikes/library-import/_private/
+
 # POC #1. Same rule as the spike: ignore the payload and the build output, never the code.
 #   uv run pocs/01_sketchup-export/tools/vendor_payload.py -> pocs/01_sketchup-export/vendor/
 #   uv run pocs/01_sketchup-export/tools/build_rbz.py      -> .../ext/dph_plus_poc/vendor/, .../dist/

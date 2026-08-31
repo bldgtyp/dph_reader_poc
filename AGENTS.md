@@ -255,8 +255,12 @@ Read in this order:
 
 These are not style preferences. Violating any of them breaks the project's legal or technical footing.
 
-1. **Never parse the `.ppp` export.** The designPH licence §2.4(a) forbids reverse-engineering its
-   file formats. Reading it *by eye* for reference is fine; writing a parser is not. See PRD §9.
+1. **Never use the `.ppp` as an input route** *(amended 2026-08-31, Ed; was "never parse")*.
+   Extracting designPH-computed data we did not author stays behind PHI's §2.4(d) written
+   authorisation. **Validation reads of exports we produced are permitted**: verbatim-needle
+   checks always; structural reads sourced only from the `phi-rules` ppp catalog + `PHX.to_PPP`,
+   never from probing the file. Full three-tier line and licence reasoning:
+   `00_Context/PPP_EXPORT.md` §1. See PRD §9.
 2. **Read-only against designPH data.** Never write to `DesignPH_dict`. When v2 authoring arrives it
    writes to `DesignPHPlus_dict` — its own namespace.
 3. **Never modify a corpus file.** Copy before experimenting. These are references, some irreplaceable.
@@ -328,7 +332,8 @@ planning/                     ★ one folder per POC — its .index.md is the ma
     feasibility/              the de-risking spike plan: PHASE-0…5 + RESULTS/
     implementation/           the POC build: POC-1…5, the frozen contract, RESULTS/ (incl. ★ the retro)
   02_headless-reader/         ✅ POC #2 — the headless C-SDK reader (Spikes A+B PASS; C open)
-  03_library-import/          ▶ POC #3 — write assemblies/window types INTO designPH models (scoped)
+  03_library-import/          ▶ POC #3 — write assemblies/window types INTO designPH models
+                              (⭐ Spike L-A PASS 2026-08-31 — see 00_Context/DESIGNPH_DATA_MODEL.md §14)
   spikes/                     throwaway spike code, kept regardless of outcome; its .index.md
                               maps subfolders to POCs (headless/_private/ is gitignored client data)
 pocs/                         ★ POC code, numbered to match planning/ — internal-only, never distributed

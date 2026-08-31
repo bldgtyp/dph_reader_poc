@@ -6,8 +6,9 @@ re-checked. Where something is **inferred** rather than observed, it says so.
 **Scope:** designPH **1.0.30** / 2.1.10 / 2.1.15 / 2.2.24 / 2.2.29 / 2.4.0 BETA, across **16**
 corpus models. §1–§12 rest on the Phase 0 offline baseline (14 models, 2.1.10 upward); **§13 is a
 2026-08-29 re-census read live through the SketchUp C SDK**, which added the 1.0.30 sample and a
-146 MB model and corrected three claims below. Upstream is now 3.0 — re-verify before relying on any
-of this for 3.0.
+146 MB model and corrected three claims below; **§14 (2026-08-31) is the WRITE side** — POC #3
+measured what designPH accepts, rereads, and rewrites, and it reframes §7.0's "generations".
+Upstream is now 3.0 — re-verify before relying on any of this for 3.0.
 
 > ⚠ **§6 is CONTESTED.** The `*Auto` vs `*ID` reading rule was refuted by the Phase 0 corpus
 > baseline. Do not implement it; read §6.2 and §6.3 first.
@@ -475,6 +476,15 @@ string starts `BAh` (base64 of `\x04\x08`, the Ruby Marshal format marker).
 Marshal.load(Base64.decode64(model.get_attribute("DesignPH_dict", "assemblies_calc")))
 ```
 
+⚠ **designPH mixes TWO base64 styles, within one model** *(measured live via the SDK, 2026-08-31,
+POC #3 prep)*: Linde 2.2.29 stores `frames_ud` and `glazing_ud` **newline-wrapped**
+(`Base64.encode64`, 60-char lines) while its `assemblies_calc` and `layer_table_*` are **strict**;
+Adelphi 2.1.15 and Bluff Reach 2.2.24 are strict throughout. `decode64` reads both, so readers are
+unaffected — but a *writer* should match the style each key already carries (POC #3's does), and a
+byte-level diff of blobs must not treat a style change as a data change. It also means the
+offline regex hunt for a `BAh…` run must include `\r\n` in its character class or it silently
+truncates a wrapped blob at 60 characters — which is exactly a stale-looking, undecodable result.
+
 Decoded, they use a **self-describing table format** — the schema travels with the data:
 
 ```ruby
@@ -498,7 +508,7 @@ an accident. See `DESIGNPH_FILE_FORMATS.md` §2.
 | `assemblies_calc` | `id, desc, R_in, R_out, surf2_percentage, surf3_percentage, additional_U_value, int_insul` |
 | `assemblies_ud` | `id, desc, assem_num, thk, U_value, int_insul` — **a different schema**, carrying a U-value directly and no layers |
 | `layer_table_<id>` | `id, desc1, lambda1, desc2, lambda2, desc3, lambda3, thickness` |
-| `layer_table_<id>` *(Linde 250703 only)* | …the eight above **plus** `R1, R2, R3, R_tot` — the schema is not fixed across models, which is what `:TOKENS` is for |
+| `layer_table_<id>` *(12-col variant; Linde 250703)* | …the eight above **plus** `R1, R2, R3, R_tot`. ⚠ *Refined 2026-08-31*: the two schemas are mixed **within** Linde itself — `01ud`/`03ud`–`07ud` are 8-col beside 12-col `02ud`/`11ud`–`13ud` — so the schema is not fixed even per model, let alone across models. Read each table's own `:TOKENS`; a per-model (or per-version) schema assumption is wrong |
 | `connections_ud` | `id, desc, areaGroupID, areaGroupName, Psi_value, F_rsi` |
 | `tfa_calc_ud` | `use_tfa_direct, tfa_direct_total, num_stories, rooms_per_storey, sub_walls_ext, thk_walls_ext, sub_walls_party, thk_walls_party, sub_walls_int, thk_walls_int, sub_stairs, area_stairs` |
 | `vent_ud` | `vent_sys_ID, vent_type_ID, room_height, V_n50, result_n50, coeff_e, coeff_f` |
@@ -534,6 +544,13 @@ only the subset it consumes.)*
 92 faces resolve to nothing in-model at all. A reader that looks for one key and stops has a 1-in-5
 to 3-in-5 chance of finding nothing, depending which it picked — read **both**, and treat absence as
 normal rather than as an error (§7.1's tiers).
+
+> ✅ **Reframed 2026-08-31 (§14.5): these are not *generations*, they are two coexisting
+> libraries** — `assemblies_ud` is the *user-defined* library (CSV-seeded, direct-U),
+> `assemblies_calc` + layers the *user-calculated* one. designPH 2.4.0 BETA lists both at once
+> from one model, in separate UI sections, with separate id namespaces. The corpus exclusivity
+> above stands as measurement; the "older/newer generation" reading of it is **superseded**.
+> The read-both rule is unchanged and now has a mechanism.
 
 ⚠ **Two models carry `connections_ud` but only one has tagged edges.** Linde has a 10-row
 connections table and **zero** thermal-bridge edges. A populated table is not evidence that anything
@@ -961,7 +978,7 @@ Its *type* is unstable too: `String` on Adelphi, `Float` in the earlier dump.
 | Key | Type | Note |
 |---|---|---|
 | `frametypeid`, `glazingtypeid` | String | The join keys. `frametypeid`'s presence is the window predicate |
-| `frametype`, `glazingtype` | String | Duplicates of the ids on this model |
+| `frametype`, `glazingtype` | String | Duplicates of the ids on this model. ⚠ **The pair can SPLIT** (measured 2026-08-31, §14.6): after a dropdown assignment one saved window carried `glazingtype=02ud` with `glazingtypeid=01ud`. Do not assume coherence; which key each consumer reads is an open L-B question |
 | `lenx`, `leny` | **String** | Inches. The rough opening. **The only dimensions to trust** |
 | `framewidth`, `framewidthbot`, `framewidthl`, `framewidthr`, `framewidthtop` | **Float** | Inches. Per-edge frame widths — PHPP takes all four |
 | `framedepth`, `revealdepth` | String | Inches |
@@ -1236,3 +1253,92 @@ on one model is confirmed on nothing" is this repo's most-repeated lesson.
 - ➕ New keys recorded: `Shader`, `tfa_calc`, `Klima_Standort`, and `DesignPH_dict` on windows.
 - ➕ Thermal-bridge evidence doubles (2 projects, 141 edges).
 - ⚠ Adelphi and Bluff Reach are now measured as masking **three** distinct structural facts.
+
+---
+
+## 14. ⭐ WRITING designPH data — measured, not inferred (POC #3 Spike L-A, 2026-08-31)
+
+Everything above describes *reading*. This section records what happened when we **wrote** —
+one assembly (+ layer table), one frame, one glazing, at model level, on staged copies, under
+POC #3's scoped amendment to hard rule 2. Full evidence:
+`planning/03_library-import/RESULTS/LIBRARY-A_results.md`; write recipe:
+`planning/spikes/library-import/write_library.rb`. Versions exercised: designPH **2.4.0 BETA**
+and **stable 2.2.29**, on models written by 2.2.24 and 2.1.15, SketchUp 22.0.353.
+
+### 14.1 The verdict
+
+**designPH accepts foreign model-level library writes, fully.** Rows written from outside are
+listed, assignable, computed exactly (U 0.112 / Error % 0.00 against a hand-computed ISO 6946
+target), survive designPH's save byte-stable, and reach the PHPP export with names, ids and
+later revisions intact. Nothing about `DesignPH_dict` distinguishes designPH's writes from
+anyone else's — §3's "nothing protects it" cuts both ways.
+
+### 14.2 The write recipe that designPH accepts
+
+- **Serialise exactly as designPH does**: `Marshal.dump` + base64, **matching the base64 style
+  the key already carries** (§7 — designPH mixes strict and newline-wrapped, per key); emit the
+  `:TOKENS` schema *the model's own table carries*, never a canonical one (§7's layer-table
+  schemas differ within one model).
+- **Filling a pre-allocated blank slot** (blank `desc`, `NNud` in the user range) is designPH's
+  own "add an entry" gesture and is accepted as such.
+- **Inserting a new row** into a table that has no free slots (old-model `assemblies_ud`) is
+  accepted — keep ascending id order.
+- **Creating a whole table the model never carried** (`frames_ud`, `glazing_ud`,
+  `assemblies_calc` + `layer_table_<id>` on a 2.1.15-era model) is accepted; mimic designPH's
+  99-row pre-allocation. The DC option lists regenerate to include the new tables (§14.4).
+- The fill-next-blank-slot id policy **composes across repeated runs** (second run takes the
+  next slot). ⚠ `assemblies_ud` and `assemblies_calc` are **separate id namespaces** — `01ud`
+  can exist in both as two different assemblies (§14.5).
+
+### 14.3 The timing model — when designPH reads, and what its save touches
+
+- designPH reads the model tables **at launch, at "Launch designPH or re-initialise model", and
+  at model open** — then holds a runtime copy for display. **The open dialog is a stale view**:
+  a live write is invisible to it through tab switches and close/re-show, and becomes visible
+  on re-initialise.
+- ⭐ **The dialog is never a stale *writer*.** A foreign write made mid-session, under an open
+  dialog displaying the stale values, **survived designPH's save** — designPH does not write
+  the library tables back from its runtime copy.
+- **designPH's save touches exactly ONE model-level field: `designPH_version`** (restamped to
+  the running version). Measured across four session shapes, including one that migrated all 46
+  of a model's windows between DC format generations — even that touched no model-level table.
+- Practical rule for an importer: **write whenever you like; tell the user to re-initialise
+  designPH (or reopen the model) afterwards.**
+
+### 14.4 What regenerates by itself — and what an importer must NOT touch
+
+The per-window `_frametype_options` / `_glazingtype_options` DC option lists (§9.2.1's shadow
+copy of the libraries) **regenerate from `frames_ud`/`glazing_ud`** — confirmed three times,
+including for tables the writer created from scratch (the regenerated lists *begin* with the
+new entries). **An importer must never write them.** The same applies to every entity-level
+dictionary: across all writes, **no face or edge `DesignPH_dict` key moved** — the only
+entity-level movement anywhere was ~1-ULP float noise in window transforms from designPH's DC
+refresh, and (on the 2.1.15 model) designPH's own 1.2→2.2 DC format migration.
+
+### 14.5 The §7.0 "generations" are actually TWO COEXISTING LIBRARIES
+
+*(This supersedes the reading of §7.0's mutual-exclusivity observation as a version story.)*
+`assemblies_ud` is the **user-defined** library — direct-U rows, seeded from the installed
+`data/phpp_assemblies_ud.csv` at session start (`DESIGNPH_FILE_FORMATS.md` §2) and snapshotted
+into models (Adelphi's renamed `83ud`–`99ud` rows are such a snapshot). `assemblies_calc` +
+`layer_table_*` is the **user-calculated** library — layered build-ups, model-only. designPH
+2.4.0 BETA lists both at once, in separate UI sections ("Assemblies (user-defined)" /
+"(user-calculated)"), from one model carrying both. The corpus-wide mutual exclusivity (§7.0)
+is *which feature each user used*, not a schema migration. An importer should pick one route —
+user-calculated for PHN assemblies, which carry layers — and say so.
+
+### 14.6 Quirks and limits found on the way
+
+- ⚠ **designPH's own window UI can split the `frametype`/`frametypeid`-style pairs**: after a
+  dropdown assignment, one saved window carried `glazingtype = 02ud` with
+  `glazingtypeid = 01ud` (the frame pair updated consistently). The subsequent 2.2.29 export
+  referenced `02ud-ZZ-LIBIMPORT Glazing`, and PHPP showed the intended assignment — but which
+  key each consumer reads is now an explicit L-B question. Do not assume the pair is coherent.
+- ⚠ **designPH 2.4.0 BETA's analysis/export path requires SketchUp ≥ 2023**: "Run analysis"
+  calls `UI.set_clipboard_data` (SU2023+ API) and dies with `NoMethodError` on SketchUp 2022;
+  its selection observers also throw `DesignPH::UI::HighlightOverlay` NameErrors. Reads and
+  library display work; analysis and PPP export need stable 2.2.29 on this SketchUp.
+- The assembly dialog displays layer thickness in **m** (rounded to one decimal — a 12.5 mm
+  layer displays as "0.0") while the table stores **mm**; the computation uses the stored value.
+- designPH applies frame widths to window DCs in **inches** (0.115 m → 4.5276) and `o_reveal`
+  in cm — §8.5's unit split, seen from the write side.

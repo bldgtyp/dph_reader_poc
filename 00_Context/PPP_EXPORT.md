@@ -1,7 +1,9 @@
 # The `.ppp` Export — What We Know, and the Line We Drew
 
-designPH's own export format, the file a consultant hands to PHPP. **We do not parse it, and this
-document deliberately stops short of describing how it works.**
+designPH's own export format, the file a consultant hands to PHPP. **We do not use it as an input
+route** (§1, as amended 2026-08-31 — validation reads of our own exports are permitted, extraction
+of designPH-computed data is not), **and this document deliberately stops short of describing how
+it works.**
 
 > ✅ **The format is now cataloged elsewhere, and the line below still holds.** 2026-08-19: the
 > `.ppp` turns out to be a transfer file addressed to **PHPP's own named-range namespace** — every
@@ -17,18 +19,46 @@ document deliberately stops short of describing how it works.**
 
 ---
 
-## 1. The rule
+## 1. The rule — AMENDED 2026-08-31 (Ed), three tiers
 
-> **Hard rule 1: Never parse the `.ppp` export.** Reading it *by eye* for reference is fine; writing
-> a parser is not.
+> **Hard rule 1: Never use the `.ppp` as an INPUT route.** Extracting designPH-computed data we
+> did not author — the shading factors above all (§5.1) — stays behind PHI's §2.4(d) written
+> authorisation. Within that line:
+>
+> 1. ✅ **Verbatim-needle validation of exports we produced** — "does the literal string we wrote
+>    appear in this file?" Requires knowing only the text encoding, never the format.
+> 2. ✅ **Validation reads of exports we produced** against the already-cataloged structure —
+>    locating a known PHPP named-range section and checking values **we authored**. Knowledge
+>    source is strictly the `phi-rules` ppp catalog and `PHX.to_PPP`; **never probe the file to
+>    learn structure**.
+> 3. ⛔ **Extraction of designPH-computed data we did not author** — forbidden without §2.4(d)
+>    written authorisation, exactly as before.
 
-The [designPH Licence Agreement](https://database.passivehouse.com/en/designph/licence-agreement/)
-**§2.4(a)** prohibits attempts to "reconstruct or discover any source code, underlying ideas,
-algorithms, **file formats or programming interfaces**." On a plain reading, writing a `.ppp` parser
-is reverse-engineering a file format, named explicitly.
+*Superseded wording (2026-08-16 → 2026-08-31): "Never parse the `.ppp` export. Reading it by eye
+for reference is fine; writing a parser is not."*
+
+**Why the amendment is sound.** The
+[designPH Licence Agreement](https://database.passivehouse.com/en/designph/licence-agreement/)
+**§2.4(a)** prohibits attempts to "reconstruct or **discover** any source code, underlying ideas,
+algorithms, **file formats or programming interfaces**." The prohibited act is *discovery*. The
+2026-08-19 finding (banner note above) removed the discovery: the `.ppp` is addressed to **PHPP's
+own named-range namespace** — 74/74 sections verified against a workbook BLDGTYP licenses — and
+PHX ships a `.ppp` **writer**. A validation reader built on that already-lawfully-held knowledge
+discovers nothing about designPH. The original "plain reading" (parser = reverse engineering) was
+written while the format was still opaque, and quietly stopped being true on 2026-08-19; tier 3
+is the case §2.4(a) still plausibly reaches, and it is also the strategic case (Phase 5's ask).
+
+⚠ **Sourcing discipline is the load-bearing part of tier 2.** The moment a reader learns structure
+*from the file* rather than from the PHPP-side catalog, it is doing the thing §2.4(a) names. If a
+validation read hits a section the catalog does not describe, it reports "uncataloged" and stops.
 
 **§2.4(d)** permits derivative works "expressly authorized **in writing**", so PHI *can* authorise
-`.ppp` access. That is a v2 conversation and is staged as Phase 5 (`planning/01_sketchup-export/feasibility/PHASE-5_phi-and-licence.md`).
+full `.ppp` access. That is a v2 conversation and is staged as Phase 5
+(`planning/01_sketchup-export/feasibility/PHASE-5_phi-and-licence.md`); POC #3's LI-1/LI-2 tasks
+should record this interpretation in writing and put it to PHI for confirmation (Ed holds the beta
+relationship — "may we programmatically validate our own exports" is a small, goodwill-building
+ask). ⚠ `phi-rules` `ppp/D09` §4 was written from the superseded reasoning and needs the same
+amendment in the next phi-rules sync.
 
 ## 2. Why this document exists at all
 
@@ -113,8 +143,9 @@ the shading factors, and a designPH-quality shading calculation is genuinely har
 That is a smaller and much better-defined reason to want it, and it is the one to put in front of
 PHI in Phase 5 — a specific ask beats a general one.
 
-⚠ It does **not** weaken hard rule 1 by one inch. A narrower motive is still a motive, and §2.4(a)
-does not care how much of the file you wanted.
+⚠ It does **not** weaken hard rule 1 by one inch — under the 2026-08-31 amendment this is
+precisely **tier 3**: shading factors are designPH-computed data we did not author. A narrower
+motive is still a motive, and §2.4(a) does not care how much of the file you wanted.
 
 ## 6. Where the `.ppp` still appears
 
@@ -123,7 +154,14 @@ does not care how much of the file you wanted.
   before anyone conflates them.
 - **Phase 4 §4.4** reads the version banner of a designPH 3.0 export — **by eye, no parser** — to
   confirm what the new version stamps.
-- **Phase 5** may seek written authorisation under §2.4(d).
+- **POC #3 Spike L-A (2026-08-31)** performed the amended rule's first tier-1 validation read: a
+  needle scan of a BLDGTYP-produced export for the library rows the spike had written. Every
+  authored name arrived (`07ud-ZZ-LIBIMPORT Wall R2` included); PHPP confirmed placement by eye.
+  Precedent for the shape such a read takes: decode UTF-16LE, search literal needles, print only
+  the matching lines — no structural interpretation
+  (`planning/03_library-import/RESULTS/LIBRARY-A_results.md` §2.5).
+- **Phase 5** may seek written authorisation under §2.4(d) — and should also put the amended
+  tier-1/2 interpretation to PHI for confirmation (LI-1/LI-2).
 
 ## 7. Not settled
 

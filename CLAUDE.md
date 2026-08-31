@@ -52,9 +52,13 @@ these, check the file — all of it is measured, not guessed:
 - ▶ **POC #2 (headless C-SDK reader, `planning/02_headless-reader/`) has Spikes A+B PASS; Spike C
   (deployment) is open.** Its spike code is `planning/spikes/headless/`, client-data scratch in
   `planning/spikes/headless/_private/` (gitignored, `MANIFEST.md`).
-- ▶ **POC #3 (`planning/03_library-import/`) is scoped, spikes not started** — can we WRITE
-  designPH library data (assemblies, window types) at model level, sourced from PH-Navigator?
-  Start at its `.index.md`; note it carries a scoped amendment to hard rule 2.
+- ▶ **POC #3 (`planning/03_library-import/`): Spike L-A is a full PASS (2026-08-31)** — designPH
+  accepts model-level library writes end to end (listed, assigned, computed exactly, save-stable,
+  in the PHPP export; all nine open questions answered). **The durable write-side facts live in
+  `00_Context/DESIGNPH_DATA_MODEL.md` §14** — read that before writing anything into a designPH
+  model. L-B (the PHN → designPH mapping contract) is next; note the POC carries a scoped
+  amendment to hard rule 2, and hard rule 1 was amended 2026-08-31 (`00_Context/PPP_EXPORT.md`
+  §1 — validation reads of our own exports are permitted).
 - **POC #1's code lives in `pocs/01_sketchup-export/`** (closed 2026-08-21), is
   **internal-only, and is never distributed** — the AGPL question
   (`planning/01_sketchup-export/feasibility/RESULTS/PHASE-3_licence-question.md`) blocks *release*, not internal POC work (working
@@ -310,7 +314,13 @@ these, check the file — all of it is measured, not guessed:
   `clean_string` and `is_horizontal`, one layer down.
 - **designPH's Marshal tables are BASE64, not raw binary**, so the NUL-truncation hazard an entire
   gate was designed around does not exist on that path: every value begins `BAh`, which is base64
-  for Marshal's `\x04\x08` (hence the collector's `MARSHAL_PREFIX = "BAh"`). ⚠ And the NUL check
+  for Marshal's `\x04\x08` (hence the collector's `MARSHAL_PREFIX = "BAh"`).
+  ⚠ **And the base64 comes in two styles, sometimes within one model** (Linde: `frames_ud`
+  wrapped in 60-char lines, `assemblies_calc` strict) — a `BAh[A-Za-z0-9+/=]{40,}` regex without
+  `\r\n` in the class silently truncates a wrapped blob at its first line break, and the
+  60-char fragment then fails to decode, reading exactly like "table absent". It cost one wrong
+  "Linde has no frames_ud" conclusion before the live SDK read contradicted it. A *writer* must
+  also match the per-key style (`DESIGNPH_DATA_MODEL.md` §7, §14.2). ⚠ And the NUL check
   built to catch it *fired on healthy data* — Linde's `tfa_calc_ud` has no NUL yet decodes to 4
   complete rows, while 95-byte payloads elsewhere do have them. NUL presence is content-dependent,
   not integrity-dependent. A check that fires on healthy data is testing the wrong property.

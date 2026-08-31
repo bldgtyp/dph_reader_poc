@@ -43,6 +43,16 @@ vs `_pppwrite_PHPP_IP` shows one export writer per PHPP version *and* unit syste
 
 ## 2. CSV libraries (`designPH/data/`)
 
+✅ **Measured 2026-08-31 (POC #3, O-5): designPH re-reads these at every session start**, and
+`phpp_assemblies_ud.csv` seeds the **user-defined** assembly library shown for any model — a row
+added to the CSV (in its own header convention, filling a spacer id) appeared in the dialog of a
+blank new model with its thickness and U-value intact. This is the machine-level import surface,
+and it is what a model's `assemblies_ud` table is a snapshot *of*
+(`DESIGNPH_DATA_MODEL.md` §14.5). ⚠ **Each install has its own `data/` folder** — base 2.2.29
+and the 2.4.0 BETA overlay carry separate copies, and the one read follows whichever GUI runs
+(a row added to the beta's CSV did not appear in a base-2.2.29 export, which is the clean
+cross-check). A CSV-route importer must target the right install, or both.
+
 | File | Rows | PHPP ver | Contents |
 |---|---|---|---|
 | `phpp_assemblies_cert.csv` | 124 | 10.5 | PHI-certified construction systems |

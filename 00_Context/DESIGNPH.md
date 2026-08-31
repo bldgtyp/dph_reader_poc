@@ -123,6 +123,16 @@ end
 ```
 
 So with both installed you are running the beta, and the Extension Manager still says "2.2.29".
+Disabling the **designPH Beta-GUI** extension (it registers separately) is how you actually get
+stable 2.2.29 back — used to produce POC #3's PPP export.
+
+⚠ **The 2.4.0 BETA assumes SketchUp ≥ 2023, and on SketchUp 2022 its analysis path is broken**
+*(measured 2026-08-31)*: "Run analysis" calls `UI.set_clipboard_data` — an API added in the
+SketchUp 2023 Ruby API — and dies with `NoMethodError`; the selection observers also throw
+`DesignPH::UI::HighlightOverlay` NameErrors on every selection event. Library display, the
+U-/R-value calculator and assignment all work; **analysis and the PPP export do not**. On
+SketchUp 2022, export through stable 2.2.29 (beta GUI disabled). Worth reporting to PHI under
+Ed's beta agreement — not yet sent as of 2026-08-31.
 The version actually written into a model can therefore disagree with what the UI reports — the
 test model here is stamped `2.4.0 BETA` while its own backup is stamped `2.2.29`.
 

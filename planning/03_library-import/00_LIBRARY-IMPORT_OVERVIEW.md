@@ -2,7 +2,10 @@
 
 ```
 DATE:    2026-08-31
-STATUS:  Scoped — outline drafted, awaiting Ed's review; no spike started
+STATUS:  ⭐ Spike L-A PASS (2026-08-31, scoped→run→graded in one day) — designPH accepts
+         foreign model-level library writes end to end; O-1…O-9 all answered
+         (RESULTS/LIBRARY-A_results.md). Durable facts: 00_Context/DESIGNPH_DATA_MODEL.md §14.
+         ▶ Spike L-B is next — its brief below is revised with what L-A learned.
 AUTHOR:  Ed May / Claude
 ISSUE:   none — local-only research workflow (planning/.instructions.md)
 ```
@@ -64,16 +67,24 @@ All of this is **observed and measured**, not inferred, unless marked open:
 7. ⚠ **Two assembly-table generations exist and are mutually exclusive per model** —
    `assemblies_calc` (+ `layer_table_*`, current) vs `assemblies_ud` (older, header-only schema)
    (§7.0). A writer targets the generation the model's designPH version actually reads — open
-   question O-3 below.
+   question O-3 below. *(✅ Answered, and the framing was wrong: they are two **coexisting
+   libraries** — user-defined vs user-calculated — both read at once. §14.5.)*
 8. ⚠ **The DC dropdown option lists are a separate copy.** designPH writes `_frametype_options` /
    `_glazingtype_options` (`&name=id&…`) onto window components, plus a placeholder variant
    (`DESIGNPH_FILE_FORMATS.md` §2.0). Whether designPH regenerates these from the tables at
    runtime — or whether a new frame stays invisible in the window dialog until something else
-   happens — is open question O-4.
-9. ✅ **The verification tooling already exists.** `00_Context/tools/skp_decode_tables.py` decodes
-   the tables offline; the headless collector emits contract-v2 captures that diff byte-precisely;
-   the POC-1 reader reconciles counts. A before/after write can be audited to the field with zero
-   new tooling.
+   happens — is open question O-4. *(✅ Answered: they regenerate, always — three confirmations,
+   including for tables the writer created. Never write them. §14.4.)*
+9. ✅ **The verification tooling mostly exists — with two measured gaps** *(corrected 2026-08-31,
+   during L-A build)*. `00_Context/tools/skp_decode_tables.py` decodes the tables offline; the
+   headless collector emits contract-v2 captures that diff byte-precisely; the POC-1 reader
+   reconciles counts. But **(a)** contract v2 deliberately ships neither `frames_ud` nor
+   `glazing_ud` (`DESIGNPH_DATA_MODEL.md` §7.0), so a capture diff is blind to two of the three
+   tables this POC writes; and **(b)** the offline decoder greps `model.dat`, which keeps
+   historical state (§8.7) — after a table is rewritten, the first blob found for a key may be the
+   *stale* one, so a post-write offline read is corroborative only. Spike L-A therefore adds one
+   small tool: an SDK **live-state** model-table dumper (`planning/spikes/library-import/`), which
+   is the authoritative before/after read.
 10. ✅ **An alternative import surface exists**: designPH's installed CSV libraries
     (`designPH/data/phpp_assemblies_ud.csv`, `phpp_frames_ud.csv`, `phpp_glazings_ud.csv` —
     `DESIGNPH_FILE_FORMATS.md` §2), machine-level rather than model-level, same self-describing
@@ -95,6 +106,10 @@ All of this is **observed and measured**, not inferred, unless marked open:
 
 **The open questions the spikes must answer:**
 
+> ⭐ **All nine ANSWERED 2026-08-31** — verdicts in
+> [`RESULTS/LIBRARY-A_results.md`](RESULTS/LIBRARY-A_results.md) §2, durable rules in
+> `00_Context/DESIGNPH_DATA_MODEL.md` §14. The table below stands as the questions asked.
+
 | # | Question |
 |---|---|
 | O-1 | Does designPH read the model tables **at model open** (vs holding runtime state that clobbers foreign writes on its next save)? |
@@ -109,6 +124,10 @@ All of this is **observed and measured**, not inferred, unless marked open:
 
 ## 3. Definition of done
 
+> ⭐ **Met in full for Spike L-A, 2026-08-31 — gate PASS** (item-by-item grading:
+> [`RESULTS/LIBRARY-A_results.md`](RESULTS/LIBRARY-A_results.md) §3). The framed/multi-section
+> U-value leg of item 1 was deliberately deferred to L-B's regression bar.
+
 The POC passes when, on a **copy** of a corpus model:
 
 1. An assembly (with a layered build-up), a frame, and a glazing that we wrote from outside are
@@ -116,8 +135,9 @@ The POC passes when, on a **copy** of a corpus model:
    own calculator** (tolerance: the POC-1 regression bar, Δ ≤ 0.0005 W/m²K on unframed; framed per
    ISO 6946 method §7.2);
 2. They **survive a designPH edit-and-save cycle** (O-1/O-6 answered by capture diff);
-3. They **appear in the PHPP export** (verified by eye in PHPP — the `.ppp` is never parsed, hard
-   rule 1);
+3. They **appear in the PHPP export** (arrival validated by needle-read of our own export under
+   hard rule 1 as amended 2026-08-31 — `PPP_EXPORT.md` §1; computed placement verified by eye in
+   PHPP);
 4. The **timing rules** (O-7) and **integrity rules** (O-8/O-9) are stated as tested rules, not
    expectations — when a write is allowed to happen, and what an editor of the libraries must and
    must not touch elsewhere in the model;
@@ -146,10 +166,24 @@ write routes, cheapest first:
   access block and its mutate-on-read trap; A-2 is optional and never gates A-1.
 
 The write is exercised at **three timings** (O-7), each on its own copy so the results never
-contaminate each other: **(a)** written into the closed `.skp` before SketchUp opens it, **(b)**
-written from the Ruby Console with SketchUp open but designPH's dialog never yet opened this
-session, **(c)** written live while designPH's dialog is already open — the hot-swap case, where
-"does the dialog show it without a reopen?" is itself the answer.
+contaminate each other: **(a)** already in the `.skp` before the designPH-active session opens it,
+**(b)** written from the Ruby Console with SketchUp open but designPH's dialog never yet opened
+this session, **(c)** written live while designPH's dialog is already open — the hot-swap case,
+where "does the dialog show it without a reopen?" is itself the answer.
+
+*(Timing (a) mechanics, since A-2 is optional: copy (a) is produced by the same A-1 console write
+in a separate **prep session with the designPH extension disabled** in the Extension Manager —
+write, Save As, quit, re-enable. The write physically happening "with SketchUp open" is fine; what
+timing (a) isolates is that designPH first meets the data at model open, in a session whose
+runtime state never saw the write happen.)*
+
+**Target copies, chosen from measurement (2026-08-31):** the primary is a copy of
+`2414_Bluff Reach` — the **only** corpus model carrying all three tables, with free user slots
+`07ud`+ (`assemblies_calc`), `03ud`+ (`frames_ud`), `02ud`+ (`glazing_ud`). The O-3 old-generation
+copy is Adelphi, whose `assemblies_ud` holds **only** rows `83ud`–`99ud` (the shipped-default
+range, renamed in place by the user) — so there the write is an *insert* of a new `01ud` row, not
+a fill, and `frames_ud`/`glazing_ud` are absent entirely, making table *creation* an optional
+extra probe there.
 
 Then the **[Ed] runbook** — the part no agent can do, one SketchUp + designPH session:
 
@@ -172,29 +206,66 @@ probe the installed-CSV route in the same Ed session if time allows (O-5).
 **Gate:** the O-2 row of the table above, graded PASS / PASS-WITH-CONDITIONS (e.g. "works, but
 option lists must be written too") / FAIL-with-mechanism. Decides whether L-B exists.
 
-### Spike L-B — the mapping *(only after L-A passes)*
+> ⭐ **RUN AND PASSED, 2026-08-31 — no conditions.** Not even the anticipated ones: the option
+> lists regenerate by themselves (O-4), no entity key needs co-updating (O-9), and the write may
+> happen at any timing (O-7). [`RESULTS/LIBRARY-A_results.md`](RESULTS/LIBRARY-A_results.md).
+> A-2 (the offline C-SDK write) was never needed and stays unrun. Spike assets:
+> `planning/spikes/library-import/` — `write_library.rb` (the accepted write recipe),
+> `rehearse.py` (the offline harness that caught two real defects before any SketchUp session),
+> `dump_model_tables.py` (the SDK live-state before/after read, kept for L-B).
 
-The contract from a **PH-Navigator assembly / window type** to the designPH tables:
+### Spike L-B — the mapping *(unblocked 2026-08-31; brief revised with L-A's findings)*
 
-- PHN assembly (layers: material + conductivity + thickness; framed layers) →
-  `assemblies_calc` row + `layer_table_<id>` rows — SI units, the three-path columns, section
-  **percentages** (never fractions), `int_insul`, `R_in`/`R_out` films;
-- PHN aperture type → `frames_ud` (per-edge U, width, psi-glazing, psi-install, `chi_GT`) +
-  `glazing_ud` (g, U);
-- id allocation policy (first blank slot vs stable PHN-keyed ids; collision behaviour on
-  re-import).
+The contract from a **PH-Navigator assembly / window type** to the designPH tables. L-A settled
+the *route*: PHN assemblies carry layers, so they write the **user-calculated** library —
+`assemblies_calc` row + `layer_table_<id>` — never `assemblies_ud` (that is the CSV-seeded
+user-defined library, a different product surface; §14.5). The contract must specify:
 
-**Gate:** on ≥ 5 real PHN assemblies (framed included), designPH's own calculator reproduces the
-intended U-value to the POC-1 regression bar. The contract doc is the deliverable, in the style of
+- **Value mapping** *(unchanged from the original brief)*: SI units, the three-path columns,
+  section **percentages** (never fractions), `int_insul`, `R_in`/`R_out` films; PHN aperture
+  type → `frames_ud` (per-edge U, width, psi-glazing, psi-install, `chi_GT`) + `glazing_ud`
+  (g, U) — creating the window tables with designPH's 99-row pre-allocation where absent
+  (accepted, measured).
+- **Serialisation discipline** *(new, from L-A)*: match each key's existing base64 style; emit
+  the layer-table `:TOKENS` the model already carries (8- and 12-col coexist in one model);
+  never touch the DC option lists or any entity dictionary.
+- **Id allocation and re-import** *(now half-answered)*: fill-next-blank-slot works and composes
+  across runs — but naive re-import therefore **duplicates** rather than updates. The contract
+  must pick the update key (row `desc` match? a PHN-id column designPH ignores? — test that a
+  foreign extra column survives) and define collision behaviour on a slot-exhausted table.
+- **The `glazingtype`/`glazingtypeid` split** *(new)*: designPH's own UI left the pair split on
+  one window and the export still resolved our glazing; L-B settles which key each consumer
+  reads before the contract claims either.
+- **User-facing rule**: imports are invisible to an open dialog — the contract ships the
+  "re-initialise designPH after import" instruction (O-7).
+
+**Gate** *(sharpened)*: on ≥ 5 real PHN assemblies — **framed/multi-section included, the ISO
+6946 mean-of-limits leg L-A deliberately deferred** — designPH's own calculator reproduces the
+intended U-value to the POC-1 regression bar, on **stable 2.2.29** (the beta cannot run analysis
+on SketchUp 2022) **and** the PPP export carries them (needle-validated under amended hard
+rule 1, placement by eye in PHPP). The contract doc is the deliverable, in the style of
 `CONTRACT_extraction-json.md` — frozen before any importer is built.
 
-### Spike L-C — transport and product shape *(sketch only)*
+### Spike L-C — transport and product shape *(sketch only; options re-weighted by L-A)*
 
-How the data physically travels: simplest viable is **PHN → JSON file → the import script** (no
-runtime shell needed — this is one write, not a pipeline). Options to weigh, not build: a menu
-item in a small extension; reuse of POC-1's loopback shell to pull from PHN's API live; the
-headless writer (pholio route, gated on the SDK questions). **Gate:** a recommended v1 shape,
-one page.
+Simplest viable is confirmed viable: **PHN → JSON file → a paste-in / menu-item write inside
+SketchUp** — `write_library.rb` is the working seed, any write timing is acceptable (O-7), and
+re-initialise is the only post-step. Options to weigh, not build:
+
+- a small extension with a menu item (one step up from the paste-in; no runtime shell — this is
+  one write, not a pipeline);
+- reuse of POC-1's loopback shell to pull from PHN's API live (only if the file hand-off proves
+  annoying in practice);
+- the **headless writer** (pholio route) — still gated on the C-SDK access + licensing blocks,
+  and note the sign-flip L-A makes explicit: a *writer* must SAVE, so POC #2's load-bearing
+  "never save" invariant (and its read-only binding, which cannot resolve `SUModelSaveToFile`
+  by design) does not carry over — a headless write path needs its own binding and its own
+  mutate-on-read reasoning;
+- **the installed-CSV channel** *(new, from O-5)* — a second product surface entirely:
+  machine-level seeding of the user-defined library ("PHN pushes the BLDGTYP standard library to
+  every designPH install"), no model touched; per-install `data/` folders to handle.
+
+**Gate:** a recommended v1 shape, one page.
 
 ## 5. Rules in force
 
@@ -204,7 +275,9 @@ one page.
   face-level classification data), and **every write is followed by a capture diff** naming
   exactly what changed. The rule as stated in `AGENTS.md` stands for all other work until this
   POC's results justify rewording it.
-- **Never parse the `.ppp`** (hard rule 1) — the PHPP-export check in L-A is by eye, in PHPP.
+- **The `.ppp` is never an input route** (hard rule 1, amended 2026-08-31 — `PPP_EXPORT.md` §1):
+  L-A validates its own export by needle-read; computed placement is checked by eye in PHPP;
+  extraction of designPH-computed data stays forbidden.
 - **Report, don't guess** (hard rule 4) — an importer that silently skips a layer it cannot map
   is the same failure as a reader that silently drops a face.
 - **Version gate** — the writer refuses a 3.x-stamped model by name, exactly like the POC-1
@@ -222,24 +295,31 @@ one page.
 | LI-2 | **The PHI conversation (spike Phase 5, tabled) intersects harder here.** A tool that *authors* designPH data is a bigger conversation than a reader; if this POC passes, the drafted PHI opener (`../01_sketchup-export/feasibility/RESULTS/PHASE-0_long-lead-staging.md`) should be updated to mention it before anything ships. **[Ed]** |
 | LI-3 | Everything stays **internal-only, never distributed**, same as all POC code |
 
-## 7. Risks, named
+## 7. Risks, named — and how each resolved (2026-08-31)
 
 - **Runtime-state clobber** (O-1/O-6) — the most likely failure mode, and L-A is designed to
-  measure it precisely rather than discover it anecdotally.
+  measure it precisely rather than discover it anecdotally. *(✅ Did not exist: the dialog is a
+  stale view, never a stale writer; save touches one field.)*
 - **The option-list shadow copy** (O-4) — a frame that exists in the table but not in any
-  dropdown *looks* like a failed write and may just be a stale list.
+  dropdown *looks* like a failed write and may just be a stale list. *(✅ Regenerates itself.)*
 - **Wrong-generation writes** (O-3) — writing `assemblies_ud` to a model whose designPH reads
-  `assemblies_calc` would fail silently; both generations get tested deliberately.
+  `assemblies_calc` would fail silently; both generations get tested deliberately. *(✅ The risk
+  dissolved with the reframe — both are read, always. The surviving version of it: an importer
+  writing the **user-defined** table when it means user-calculated data, §14.5.)*
 - **The percent trap** (§7.2) and **DC formula staleness** (§9.2) — both already documented;
-  the mapping contract cites them rather than rediscovering them.
+  the mapping contract cites them rather than rediscovering them. *(→ carried to L-B, joined by
+  the base64-style and layer-schema disciplines and the `glazingtypeid` split.)*
 - **n=1 evidence** — every acceptance claim gets checked on more than one model and more than
   one designPH version before it is written down as a rule. Adelphi alone proves nothing.
+  *(Two models — 2.2.24-written and 2.1.15-written — and two designPH versions — 2.4.0 BETA and
+  stable 2.2.29 — but **one machine and one SketchUp**. L-B keeps the caution.)*
 
 ## 8. What this POC is not
 
 Not face-level writing (classifications, area groups), not geometry authoring, not a designPH
 replacement, not `.ppp` writing, and not a shipped product — it answers **one** question: does
 designPH accept model-level library data written from outside? Spike code goes in
-[`../spikes/library-import/`](../spikes/); results in `RESULTS/`; durable findings
-about designPH's behaviour go to `00_Context/DESIGNPH_DATA_MODEL.md` (a new §10, "writing") and
-to `phi-rules`, per the house rule.
+[`../spikes/library-import/`](../spikes/library-import/); results in `RESULTS/`; durable findings
+about designPH's behaviour go to `00_Context/DESIGNPH_DATA_MODEL.md` (a new "Writing designPH
+data" section — the doc already has a §10, so number it when it lands) and to `phi-rules`, per
+the house rule.

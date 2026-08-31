@@ -65,7 +65,7 @@ runtime knowledge is not.
 
 | | Constraint | Evidence |
 |---|---|---|
-| 🔴 | **Never parse the `.ppp`.** Licence §2.4(a) names file formats explicitly. Reading by eye is fine | [`PPP_EXPORT.md`](PPP_EXPORT.md) |
+| 🔴 | **Never use the `.ppp` as an input route** *(amended 2026-08-31)*. Extraction of designPH-computed data needs PHI's §2.4(d) authorisation; **validation reads of our own exports are permitted** (needle checks always; structure only from the phi-rules catalog, never probed) | [`PPP_EXPORT.md`](PPP_EXPORT.md) §1 |
 | 🔴 | **The AGPL question is unresolved and blocks v1 / any distribution.** Vendoring honeybee (AGPL-3.0) is now a decision, not a possibility. *(2026-08-19, Ed: internal, never-distributed POC work proceeds — AGPL obligations attach to conveying, not private use; working assumption, for counsel. `planning/01_sketchup-export/implementation/00_POC_OVERVIEW.md` §2.3)* | `planning/01_sketchup-export/feasibility/RESULTS/PHASE-3_licence-question.md` |
 | 🟠 | Exposure is entirely **Ladybug Tools'** code. `honeybee-ph` and `ph-units` are BLDGTYP's own copyright | [`HONEYBEE_STACK.md`](HONEYBEE_STACK.md) §8 |
 | 🟠 | **"PHI actively objects" is the only true deal-breaker** in the plan. Every technical obstacle so far has a workaround; that one does not | PRD §9 |
@@ -123,8 +123,23 @@ runtime knowledge is not.
 | 🟠 | **Real models contain degenerate geometry, and more of it than one pass finds** — Adelphi's 82 classified faces hold **8** with a sub-mm edge and **7** whose boundary revisits a point (one revisits 21). ⚠ Every edge of a spur is *long*, so a short-edge test misses it. ✅ *Decided 2026-08-21: report and carry, repair nothing* | same, §8.6.2 |
 | 🟠 | **The inline frame/glazing option lists are library data on a window.** 44,915 chars, **byte-identical on all 46** Adelphi windows — 2.07 MB per-window against 45 KB deduplicated. Ship them model-level | [`DESIGNPH_DATA_MODEL.md`](DESIGNPH_DATA_MODEL.md) §9.2.1 |
 | 🔵 | **designPH writes a placeholder option list** (`&Launch designPH to edit=01ud&`) that claims the same ids. Merge by how many ids a *list* names — "longest name wins" picks the placeholder and un-names the library | same |
-| 🔵 | **Never write to `DesignPH_dict`.** v2 writes `DesignPHPlus_dict` | AGENTS.md |
+| 🔵 | **Never write to `DesignPH_dict`.** v2 writes `DesignPHPlus_dict`. ⚠ *One scoped, recorded exception*: POC #3's spikes write model-level library tables on staged `LIBIMPORT` copies only, capture-diffed after every write — the rule stands for all other work | AGENTS.md; `planning/03_library-import/` §5 |
 | 🔵 | **Never modify a corpus file.** Copy first | AGENTS.md |
+
+### 4.1 Writing the model — measured rules (POC #3 Spike L-A, 2026-08-31)
+
+Writing model-level library data **works, end to end** — the constraints are about *how*, not
+*whether*. Full record: [`DESIGNPH_DATA_MODEL.md`](DESIGNPH_DATA_MODEL.md) §14.
+
+| | Constraint | Evidence |
+|---|---|---|
+| 🔴 | **Match each key's existing base64 style** — designPH mixes strict and newline-wrapped `Base64`, per key, within one model. And a `BAh…` regex without `\r\n` in its class silently truncates a wrapped blob at 60 chars | §7, §14.2 |
+| 🔴 | **Emit the schema the model's own table carries** — layer-table `:TOKENS` are 8-col and 12-col *within one model* (Linde) | §7, §14.2 |
+| 🔴 | **Never write the DC option lists** — designPH regenerates them from `frames_ud`/`glazing_ud`, even for tables it never allocated. No entity-level key needs co-updating either | §14.4 |
+| 🟠 | **The open dialog is a stale view** — a live write shows only after "Launch designPH or re-initialise model" (or model reopen). It is never a stale *writer*: foreign writes survive designPH's save, which touches exactly one field (`designPH_version` restamp) | §14.3 |
+| 🟠 | **designPH 2.4.0 BETA's analysis/export is broken on SketchUp 2022** (`UI.set_clipboard_data` is SU2023+). Export via stable 2.2.29 (Beta-GUI disabled) | [`DESIGNPH.md`](DESIGNPH.md) |
+| 🔵 | `assemblies_ud` (user-defined, CSV-seeded) and `assemblies_calc` (+layers, user-calculated) are **two coexisting libraries with separate id namespaces** — an importer picks one route and says so | §14.5 |
+| 🔵 | The `.ppp` may be needle-read to validate **our own** exports — hard rule 1 as amended 2026-08-31; extraction of designPH-computed data stays forbidden | [`PPP_EXPORT.md`](PPP_EXPORT.md) §1 |
 
 ## 5. The honeybee stack
 
