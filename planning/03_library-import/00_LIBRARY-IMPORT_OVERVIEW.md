@@ -24,6 +24,14 @@ designPH, "PHN builds the library, the model imports it" replaces the most tedio
 mistake-prone part of every designPH workflow. If it is not accepted, we want to know *why* (and
 whether the plugin-folder CSV route works instead) before anyone builds an importer.
 
+**The primary deliverable of this POC is what we learn, written down (Ed, 2026-08-31).** Spike
+code is throwaway — code quality, speed, and packaging do not matter at all here. What matters,
+non-negotiably: every observation lands in `RESULTS/` as it is made (negative and puzzling ones
+especially); durable behaviour facts flow to `00_Context/DESIGNPH_DATA_MODEL.md` (a new "writing"
+section) and to `phi-rules`; and **any existing doc a finding contradicts is corrected and marked
+superseded in the same pass** — the house "keep the record honest" rule. These notes are the
+foundation for the real apps that follow; the code is not.
+
 ## 2. What is already known — verified against the record, 2026-08-31
 
 All of this is **observed and measured**, not inferred, unless marked open:
@@ -71,6 +79,19 @@ All of this is **observed and measured**, not inferred, unless marked open:
     `DESIGNPH_FILE_FORMATS.md` §2), machine-level rather than model-level, same self-describing
     header convention. Whether designPH re-reads them per session is open question O-5, and this
     is the fallback route if model-level writes are rejected.
+11. ⚠ **Library data is duplicated outside the model dictionary in three known places** — the
+    per-window DC option lists (`_frametype_options`, names only, `DESIGNPH_FILE_FORMATS.md`
+    §2.0), the DC `frametype`/`glazingtype` keys (observed duplicating the *ids* on Adelphi,
+    §9.2.1 — whether they ever hold names is unverified), and the `Material`/`BackMaterial`
+    stash designPH writes onto faces when it repaints (§5.1). Entity-level dictionaries otherwise
+    hold **references** (`NNud` ids) and per-entity classification, not library values — which is
+    the structural reason to *expect* independence, and open question O-9 is where that
+    expectation gets tested rather than trusted.
+12. ✅ **Assignments are by id, names travel separately.** A face's `assemblyID` is an `NNud` key
+    into the tables; `desc` is a column in the table row; the face-level `descName`/`descNameAuto`
+    pair is the *face's* name, not the assembly's (§5.2, §6.5). So renaming an assembly **should**
+    leave every assignment intact — stated here as the hypothesis O-8 exists to verify, because
+    "should" from structure has been wrong on this project before.
 
 **The open questions the spikes must answer:**
 
@@ -82,6 +103,9 @@ All of this is **observed and measured**, not inferred, unless marked open:
 | O-4 | Do the window dialog's dropdown option lists regenerate from `frames_ud`/`glazing_ud`, or must they be updated too (and is *that* acceptable)? |
 | O-5 | Does the installed-CSV route work as a machine-level alternative? |
 | O-6 | What does designPH **rewrite** on its next save — does our data round-trip byte-stable, get normalised, or get purged? |
+| O-7 | **When may (must?) the write happen** — (a) into the `.skp` before SketchUp opens it, (b) with SketchUp open but designPH's dialog not yet opened, (c) live, with the dialog already open? Does designPH see a **hot-swapped** table without a file reopen or dialog reopen? |
+| O-8 | **Does a library edit break existing assignments?** Rename an assembly already assigned to faces (`desc` change), then change its layer values: does the assignment hold, does the U-value follow, do the Areas list and PHPP export follow? (Known #12 says it should — verify.) |
+| O-9 | **Which entity-level dictionaries must be co-updated** when the model-level libraries change — faces, edges, window DCs — and which are functionally independent? (Known #11 names the three suspected coupling points.) |
 
 ## 3. Definition of done
 
@@ -94,7 +118,11 @@ The POC passes when, on a **copy** of a corpus model:
 2. They **survive a designPH edit-and-save cycle** (O-1/O-6 answered by capture diff);
 3. They **appear in the PHPP export** (verified by eye in PHPP — the `.ppp` is never parsed, hard
    rule 1);
-4. Every open question O-1…O-6 has a written answer in `RESULTS/`, including the negative ones.
+4. The **timing rules** (O-7) and **integrity rules** (O-8/O-9) are stated as tested rules, not
+   expectations — when a write is allowed to happen, and what an editor of the libraries must and
+   must not touch elsewhere in the model;
+5. Every open question O-1…O-9 has a written answer in `RESULTS/`, including the negative ones,
+   and every `00_Context` claim a finding contradicted has been corrected and marked superseded.
 
 A **clean FAIL is also a pass for the POC**: "designPH discards foreign writes because X" is a
 result worth exactly as much as a working importer, and it redirects the effort to the CSV route
@@ -117,20 +145,29 @@ write routes, cheapest first:
   pholio-shaped "watcher writes the model" variant is even conceivable. ⚠ Inherits POC #2's SDK
   access block and its mutate-on-read trap; A-2 is optional and never gates A-1.
 
+The write is exercised at **three timings** (O-7), each on its own copy so the results never
+contaminate each other: **(a)** written into the closed `.skp` before SketchUp opens it, **(b)**
+written from the Ruby Console with SketchUp open but designPH's dialog never yet opened this
+session, **(c)** written live while designPH's dialog is already open — the hot-swap case, where
+"does the dialog show it without a reopen?" is itself the answer.
+
 Then the **[Ed] runbook** — the part no agent can do, one SketchUp + designPH session:
 
 | Step | Answers |
 |---|---|
-| Open the written copy with designPH active; open the assembly list and window dialog | O-2 (listed?), O-4 (dropdowns?) |
+| Open copy (a) with designPH active; open the assembly list and window dialog | O-2 (listed?), O-4 (dropdowns?), O-7a |
+| On copies (b) and (c): run the paste-in write at the scripted moment, then look again | O-7b, O-7c (hot swap) |
 | Assign the new assembly to a face; open the U-/R-value calculator on it | O-2 (computes? U-value as intended?) |
 | Assign the new frame/glazing to a window | O-2, O-4 |
+| **Rename the imported assembly** (a `desc` edit through our write path) *after* it is assigned; recheck the face's assignment, its U-value, and the Areas list | O-8 |
 | Make one trivial designPH edit, save | O-1, O-6 |
-| Export to PHPP; open in PHPP and look (by eye) | O-2 end-to-end |
+| Export to PHPP; open in PHPP and look (by eye) | O-2 end-to-end, O-8 downstream |
 
-Agent closes the loop offline: re-capture the saved model (headless collector), diff against the
-pre-session capture, and name **every field designPH rewrote** (O-6). Test both table generations
-on suitable copies (O-3), and probe the installed-CSV route in the same Ed session if time allows
-(O-5).
+Agent closes the loop offline: re-capture every saved copy (headless collector), diff against its
+pre-session capture, and name **every field designPH rewrote** (O-6) — the same diff, read
+per-entity, grades **O-9**: which face/edge/DC keys changed when only the model-level tables were
+edited, and which stayed byte-stable. Test both table generations on suitable copies (O-3), and
+probe the installed-CSV route in the same Ed session if time allows (O-5).
 
 **Gate:** the O-2 row of the table above, graded PASS / PASS-WITH-CONDITIONS (e.g. "works, but
 option lists must be written too") / FAIL-with-mechanism. Decides whether L-B exists.
