@@ -29,8 +29,8 @@ an sdist proves nothing either way (plan §Method).
 Usage:
     uv run planning/spikes/phase2/purity_audit.py honeybee-ph PHX \
         --pyodide 314.0.5 --pyodide 0.29.4 \
-        --md planning/RESULTS/PHASE-2_dependency-audit.md \
-        --json planning/RESULTS/baselines/phase2_closure.json
+        --md planning/01_sketchup-export/feasibility/RESULTS/PHASE-2_dependency-audit.md \
+        --json planning/01_sketchup-export/feasibility/RESULTS/baselines/phase2_closure.json
 """
 
 from __future__ import annotations

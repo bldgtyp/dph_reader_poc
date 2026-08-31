@@ -17,24 +17,24 @@ the pipeline ran end to end inside SketchUp on five real project models and its 
 verified in production ph-navigator and in Rhino/Grasshopper. Spike Phases 0–3 are complete
 (2026-08-19); Phases 4 and 5 remain **tabled** (Ed, 2026-08-19) on two recorded working
 assumptions — a designPH 2.x reader will translate to 3.0 later, and PHI will agree. POC code
-lives in **`poc/`** and stays **internal-only and never distributed** — the AGPL question
-(`planning/RESULTS/PHASE-3_licence-question.md`) blocks *release*, not internal work (working
-assumption, for counsel — `planning/POC/00_POC_OVERVIEW.md` §2.3).
+lives in **`pocs/01_sketchup-export/`** and stays **internal-only and never distributed** — the AGPL question
+(`planning/01_sketchup-export/feasibility/RESULTS/PHASE-3_licence-question.md`) blocks *release*, not internal work (working
+assumption, for counsel — `planning/01_sketchup-export/implementation/00_POC_OVERVIEW.md` §2.3).
 
 **▶ One follow-on phase is ACTIVE (opened 2026-08-28):
-[`planning/HEADLESS/`](planning/HEADLESS/.index.md)** — can a headless service read the `.skp` via
+[`planning/02_headless-reader/`](planning/02_headless-reader/.index.md)** — can a headless service read the `.skp` via
 the **SketchUp C SDK**, with no SketchUp installed and no SketchUp seat, and emit the POC's
 contract-v2 capture? (The passive-scrape question behind pholio's Dropbox-watcher model.)
 ✅ **Answered yes, twice over: Spikes A and B both PASS (2026-08-29).** Spike C (deployment) is
 the remaining technical question; the blocking ones are legal.
 
-✅ **Spike A PASSED 2026-08-29** ([results](planning/HEADLESS/RESULTS/HEADLESS-A_results.md)). A
+✅ **Spike A PASSED 2026-08-29** ([results](planning/02_headless-reader/RESULTS/HEADLESS-A_results.md)). A
 headless CPython process, no SketchUp anywhere, reproduces the live Ruby collector's reads exactly
 on all five real models — **545/545 classified faces · 239/239 windows, every host via the glue
 query · 99/99 thermal-bridge edges · 63/63 Marshal tables · 15/15 files opened**, at ≈3-4 s per
 model, with world geometry matching to **0.0000 mm** on windows and 0.0008 mm on face vertices.
 
-✅ **Spike B PASSED the same day** ([results](planning/HEADLESS/RESULTS/HEADLESS-B_results.md)) —
+✅ **Spike B PASSED the same day** ([results](planning/02_headless-reader/RESULTS/HEADLESS-B_results.md)) —
 and it is the one that answers the product question. **A headless reader is a drop-in capture
 device.** It emits the frozen contract v2 with **0 unexplained differences on 5/5** models against
 the live SketchUp captures (worst geometry deviation **0.000000 mm**), reconciles under the
@@ -78,7 +78,7 @@ stays frozen at v2 and the POC status table below stands.
 > canonical for designPH facts**; product planning continues in pholio.
 >
 > ### ▶ **Here for the designPH research or the POC itself? Three files, in order:**
-> 1. [`planning/POC/RESULTS/POC-5_results.md`](planning/POC/RESULTS/POC-5_results.md) **§4 — the
+> 1. [`planning/01_sketchup-export/implementation/RESULTS/POC-5_results.md`](planning/01_sketchup-export/implementation/RESULTS/POC-5_results.md) **§4 — the
 >    ranked "what v1 must do differently" list.** The POC's product; every entry measured.
 > 2. [`00_Context/CONSTRAINTS.md`](00_Context/CONSTRAINTS.md) — every hard limit and blocker.
 > 3. [`DESIGNPH-PLUS_PRD.md`](DESIGNPH-PLUS_PRD.md) — what the product is and deliberately is not.
@@ -94,7 +94,7 @@ stays frozen at v2 and the POC status table below stands.
 | POC-2 Ruby collector | ✅ **PASS** — **5 of 5** models captured and reconciled; E-1 answered (all 99 Bluff Reach bridge edges nest two levels deep) |
 | POC-3 translator | ✅ **PASS** — 545/545 faces, 239/239 windows, 99/99 bridges across the corpus; **both U-value regressions PASS** |
 | POC-4 integration | ✅ **PASS** — gate closed 2026-08-21. All four Ed runs correct; both identity claims closed; both refusals fire. ⛔ The progress signal does not work and is carried to v1 |
-| POC-5 | ✅ **PASS — closed by Ed 2026-08-21, and the POC with it.** Retro + ranked v1 list (`planning/POC/RESULTS/POC-5_results.md` §4); standing smoke runbook; ph-navigator checked live — Finding 71 (its viewer skips no-mass-construction faces) and the identifier question closed (nothing keys on `properties.ph.*.identifier`) |
+| POC-5 | ✅ **PASS — closed by Ed 2026-08-21, and the POC with it.** Retro + ranked v1 list (`planning/01_sketchup-export/implementation/RESULTS/POC-5_results.md` §4); standing smoke runbook; ph-navigator checked live — Finding 71 (its viewer skips no-mass-construction faces) and the identifier question closed (nothing keys on `properties.ph.*.identifier`) |
 
 ⚠ **Two exports of one model are not the same file** — honeybee-ph gives every newly *constructed*
 PH object a `uuid4` (152 distinct on Adelphi) and honeybee-energy orders four lists out of a `set`,
@@ -103,7 +103,7 @@ so the same translation twice on one CPython gives two hashes. The cross-host ga
 `from_dict` → `to_dict` preserves 152 of 152, measured — `uuid4` is a constructor default for
 objects with no identity of their own, and only 1 of the 152 is a real cross-reference. The effect
 is diff noise between re-exports, nothing more. `00_Context/HONEYBEE_STACK.md` §4,
-`planning/POC/RESULTS/POC-4_results.md` §3.
+`planning/01_sketchup-export/implementation/RESULTS/POC-4_results.md` §3.
 
 **What the corpus proves, in one table** *(2026-08-21, five real projects, designPH 2.1.15–2.2.29,
 SketchUp 22–26)*:
@@ -186,7 +186,7 @@ all four are load-bearing:
 ⚠ **The AGPL question is now live**, because vendoring honeybee is a decision rather than a
 possibility. It is written up for counsel and must be answered before v1.
 
-From Phase 1 (`planning/RESULTS/PHASE-1_results.md`), four things change how you should read the
+From Phase 1 (`planning/01_sketchup-export/feasibility/RESULTS/PHASE-1_results.md`), four things change how you should read the
 rest of this repo:
 
 - ✅ **`00_Context/DESIGNPH_DATA_MODEL.md` §6 is settled** (§6.5). `*ID` and `*Auto` are **mutually
@@ -203,7 +203,7 @@ rest of this repo:
   since hardened into a block: ⛔ **the designPH 3.0 licence cannot be bought yet** (Ed, 2026-08-21).
   That is a procurement constraint, not a scheduling choice — **Phase 4 is blocked on something no
   agent work can unblock, so do not propose starting it.** The PHI opener still fires at the start
-  of **Phase 5**. Both are drafted in `planning/RESULTS/PHASE-0_long-lead-staging.md`.
+  of **Phase 5**. Both are drafted in `planning/01_sketchup-export/feasibility/RESULTS/PHASE-0_long-lead-staging.md`.
   *(Unaffected, and deliberately: the POC's version gate refuses a 3.x stamp by name. It needs no
   licence, and a reader that meets a 3.0 model in the wild must say so rather than half-read it.)*
 
@@ -214,7 +214,7 @@ creates no loop, so it is true on only **1 of the 16** real Adelphi hosts. **`gl
 scope**: no heuristic separates context from clutter, so v1 will ask the user which SketchUp tags
 are shading rather than guess (PRD §7.2).
 
-**Phase 2's gate closed PASS WITH CHANGES (2026-08-19)** — `planning/RESULTS/PHASE-2_results.md`.
+**Phase 2's gate closed PASS WITH CHANGES (2026-08-19)** — `planning/01_sketchup-export/feasibility/RESULTS/PHASE-2_results.md`.
 The Python stack is pure, and the change widens Phase 3 rather than narrowing it:
 
 - ✅ Phase 3 vendors **8 `py3-none-any` wheels, 1.5 MB**, on a 6.4 MB `pyodide-core` plus
@@ -239,14 +239,14 @@ unpacked with `zipfile` instead. Every one of them installed and imported.
 
 Read in this order:
 
-0. **`planning/POC/RESULTS/POC-5_results.md`** — the POC retro: the verdict, the measured tables,
+0. **`planning/01_sketchup-export/implementation/RESULTS/POC-5_results.md`** — the POC retro: the verdict, the measured tables,
    and §4's ranked "what v1 must do differently" list. If you are picking this up cold — especially
-   to plan a V-0 — start here and nowhere else. (`planning/POC/.index.md` carries the closed
+   to plan a V-0 — start here and nowhere else. (`planning/01_sketchup-export/implementation/.index.md` carries the closed
    status table and the same routing.)
 1. **`00_Context/CONSTRAINTS.md`** — every hard limit, blocker and non-negotiable rule, with pointers
    into the detail. Cheapest possible way to avoid redoing Phases 0–3 *or the first real export*
 2. `DESIGNPH-PLUS_PRD.md` — what we are building and, importantly, what we are deliberately *not*
-3. `planning/00_OVERVIEW.md` — the phased spike plan and its evaluation protocol
+3. `planning/01_sketchup-export/feasibility/00_OVERVIEW.md` — the phased spike plan and its evaluation protocol
 4. `00_Context/` — the foundation layer: designPH's data model, SketchUp as a host, the Pyodide
    runtime, the honeybee stack, and the translation contracts between them. See its
    [`.index.md`](00_Context/.index.md)
@@ -271,7 +271,7 @@ These are not style preferences. Violating any of them breaks the project's lega
    assembly in `assemblyIDAuto`. Any rule keyed on the version stamp loses envelope data silently.
    See `00_Context/DESIGNPH_DATA_MODEL.md` §6.5.
 7. **Do not start a spike phase until the previous phase's gate is evaluated and recorded** in
-   `planning/RESULTS/`. Negative results get written down too.
+   `planning/01_sketchup-export/feasibility/RESULTS/`. Negative results get written down too.
 8. **Serve the dialog over `http://127.0.0.1`, never `file://`.** A `file://` page cannot fetch its
    own assets — `fetch`, `XHR` *and* dynamic `import()` are all refused, and the third cannot be
    shimmed. Confirmed inside SketchUp. See `00_Context/SKETCHUP_RUNTIME.md` §4.3.
@@ -309,7 +309,7 @@ is what makes the stack pure-Python, and therefore Pyodide-viable). Schema contr
 
 ```
 DESIGNPH-PLUS_PRD.md          product requirements
-00_Context/                   ★ the foundation layer — read CONSTRAINTS.md first
+00_Context/                   ★ the SHARED foundation layer (all POCs) — read CONSTRAINTS.md first
   CONSTRAINTS.md              ★ every hard limit and blocker, one page
   DESIGNPH.md                 basics: authors, versions, licensing, install paths
   DESIGNPH_DATA_MODEL.md      attribute storage, keys, enums, rules, quirks
@@ -322,27 +322,30 @@ DESIGNPH-PLUS_PRD.md          product requirements
   DATA_CONTRACTS.md           the translation spine: designPH face → JSON → HBJSON
   tools/skp_attr_dump.py      offline .skp attribute reader (uv run)
   tools/skp_decode_tables.py  offline Marshal-table decoder (uv run)
-planning/                     phased spike plan, one doc per phase
-  POC/                        ★ the completed POC — phased plans + RESULTS/ (incl. the retro, ★ the V-0 starting point)
-  HEADLESS/                   ▶ the ACTIVE phase — headless C-SDK reader spikes (Spike A ✅ PASS)
-  RESULTS/                    spike phase results — write before starting the next phase
-  spikes/                     throwaway spike code, kept regardless of outcome
-                              (headless/ holds the HEADLESS phase's scripts; its _private/ is gitignored client-data scratch)
-poc/                          ★ POC code — internal-only, never distributed. See its `.index.md`
-  Makefile                    the verification gate: `make ci` (offline), `make identity`
-                              (cross-host, needs `_private/`), `make ed` (install)
-  ext/                        the SketchUp extension (Ruby + the HtmlDialog page)
-  py/                         `dph_translator` + pytest; the venv matches Pyodide's CPython 3.11
-  tools/                      vendor the payload, build the .rbz, drive it in Chromium 88
-_adephi_st_example_files/     primary corpus: one building in six formats
-_misc_test_files/             small scratch models and inspector dumps
+planning/                     ★ one folder per POC — its .index.md is the master router + status
+  .instructions.md            this folder's conventions (deviations from planning-conventions)
+  01_sketchup-export/         ✅ POC #1 — designPH → HBJSON inside SketchUp (closed 2026-08-21)
+    feasibility/              the de-risking spike plan: PHASE-0…5 + RESULTS/
+    implementation/           the POC build: POC-1…5, the frozen contract, RESULTS/ (incl. ★ the retro)
+  02_headless-reader/         ✅ POC #2 — the headless C-SDK reader (Spikes A+B PASS; C open)
+  03_load-from-phnav/         ▶ POC #3 — SketchUp loads FROM PH-Navigator (stub, being scoped)
+  spikes/                     throwaway spike code, kept regardless of outcome; its .index.md
+                              maps subfolders to POCs (headless/_private/ is gitignored client data)
+pocs/                         ★ POC code, numbered to match planning/ — internal-only, never distributed
+  01_sketchup-export/         the extension + translator. Makefile: `make ci` (offline gate),
+                              `make identity` (cross-host, needs `_private/`), `make ed` (install);
+                              ext/ = Ruby + HtmlDialog page, py/ = `dph_translator` + pytest
+                              (venv matches Pyodide's CPython 3.11), tools/ = vendor/build/verify
+corpus/                       the reference models — hard rule 3: never modify one
+  adelphi/                    primary corpus: one building in six formats (data removed in this copy)
+  synthetic/                  small scratch models and inspector dumps
 ```
 
 Per house convention, check for `.index.md` in a folder before processing its contents.
 
 ## Corpus
 
-`_adephi_st_example_files/` — the same building across formats:
+`corpus/adelphi/` — the same building across formats:
 
 | File | Role |
 |---|---|
@@ -358,9 +361,9 @@ non-solid room** by design — it is a shape reference, never an equality target
 
 Secondary corpus: `~/Dropbox/bldgtyp/*/08_DesignPH/*.skp` — **11 files across five real projects**,
 spanning designPH 2.1.10 to 2.2.29, backups included. All 14 corpus models are baselined key-by-key
-in `planning/RESULTS/PHASE-0_corpus-baseline.md` — check there before opening a model by hand.
+in `planning/01_sketchup-export/feasibility/RESULTS/PHASE-0_corpus-baseline.md` — check there before opening a model by hand.
 
-★ **Five of them are now captured live** (contract v2, `poc/_private/fixtures/`, gitignored client
+★ **Five of them are now captured live** (contract v2, `pocs/01_sketchup-export/_private/fixtures/`, gitignored client
 data — `MANIFEST.md`). This is the evidence base for everything dated 2026-08-21:
 
 | model | designPH | classified | edges | windows | layer tables | what only it can test |
@@ -391,13 +394,13 @@ geometry is placed twice. **Never validate a rule or a check on Adelphi alone.**
   SketchUp scripts. Two reusable modules worth knowing about before writing anything new:
   `skp_blocks.py` groups attribute records **per entity**, and `ruby_marshal.py` reads designPH's
   `Marshal.dump` blobs in pure Python without constructing anything.
-- `poc/tools/` — the POC's own: `vendor_payload.py` (pin and fetch the Pyodide payload),
+- `pocs/01_sketchup-export/tools/` — the POC's own: `vendor_payload.py` (pin and fetch the Pyodide payload),
   `build_rbz.py` (build the extension; `--check` catches a staged translator that has drifted from
   source; `--install` copies into SketchUp 2022), `verify_in_chrome.py` (drive the built page in a
   real Chromium 88 and refuse any other engine), `check_extraction.py` (reconcile a capture against
   the offline baselines), `validate_output.py` (published honeybee-schema, separate interpreter),
   and `byte_identity.py` (does one extraction translate the same on every host?).
-  `cd poc && make ci` runs the offline lot; `make identity` runs the last one.
+  `cd pocs/01_sketchup-export && make ci` runs the offline lot; `make identity` runs the last one.
 - **A Chromium 88 snapshot** at `~/.cache/dph-plus/chromium-88/` — the engine SketchUp 2022 embeds,
   kept outside the repo. One `curl` to recreate; the line is in `verify_in_chrome.py`'s docstring.
   It is what turns "ask Ed to click and report back" into a local loop.

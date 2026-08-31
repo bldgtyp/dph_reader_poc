@@ -2,11 +2,11 @@
 # requires-python = ">=3.11"
 # dependencies = []
 # ///
-"""Spike B — the **headless contract-v2 collector**: `poc/ext/dph_plus_poc/collector.rb`, with no
+"""Spike B — the **headless contract-v2 collector**: `pocs/01_sketchup-export/ext/dph_plus_poc/collector.rb`, with no
 SketchUp anywhere.
 
 One `.skp` in, one contract-v2 extraction JSON out
-(`planning/POC/CONTRACT_extraction-json.md`), read through the SketchUp C SDK from a plain CPython
+(`planning/01_sketchup-export/implementation/CONTRACT_extraction-json.md`), read through the SketchUp C SDK from a plain CPython
 process. The contract is **frozen at v2** and this file emits it verbatim: same keys, same shapes,
 same units, `libraries` hoisted to model level. Anything the SDK exposes that v2 does not carry is
 a **proposal** for the contract's §9 process, never a field added here (HEADLESS-B §2.2).

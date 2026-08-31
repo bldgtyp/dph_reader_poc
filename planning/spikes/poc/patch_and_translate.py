@@ -30,7 +30,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from solve_window_parent import FIXTURE, IN_TO_M, columns, kabsch, plane_of  # noqa: E402
 
 ROOT = Path(__file__).resolve().parents[3]
-VENV_PYTHON = ROOT / "poc/py/.venv/bin/python"
+VENV_PYTHON = ROOT / "pocs/01_sketchup-export/py/.venv/bin/python"
 
 
 def parent_transform(payload: dict) -> np.ndarray:
@@ -117,7 +117,7 @@ for entry in tfa.get("listed", [])[:3]:
     print(f"      {entry['id']}: {entry['reason'][:120]}")
 """
     return subprocess.run(
-        [str(VENV_PYTHON), "-c", script, str(out)], cwd=ROOT / "poc/py", check=False
+        [str(VENV_PYTHON), "-c", script, str(out)], cwd=ROOT / "pocs/01_sketchup-export/py", check=False
     ).returncode
 
 

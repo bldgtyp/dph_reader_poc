@@ -1,8 +1,8 @@
 # The honeybee / honeybee-ph / PHX Stack
 
 What the downstream Python stack requires, what it costs, and where it bites. Everything here is
-observed — Phase 2 (`planning/RESULTS/PHASE-2_results.md`) audited it, Phase 3
-(`planning/RESULTS/PHASE-3_results.md`) ran it inside SketchUp.
+observed — Phase 2 (`planning/01_sketchup-export/feasibility/RESULTS/PHASE-2_results.md`) audited it, Phase 3
+(`planning/01_sketchup-export/feasibility/RESULTS/PHASE-3_results.md`) ran it inside SketchUp.
 
 Source repos: `~/Dropbox/bldgtyp-00/00_PH_Tools/` and *github.com/PH-Tools*.
 
@@ -229,7 +229,7 @@ merging into one identifier**. Check for duplicate identifiers after cleaning an
 
 ### ⚠ Two exports of the same model are not the same file — and it is NOT a round-trip problem
 
-Measured 2026-08-21 across all five corpus fixtures (`poc/tools/byte_identity.py`, POC-4). **Three
+Measured 2026-08-21 across all five corpus fixtures (`pocs/01_sketchup-export/tools/byte_identity.py`, POC-4). **Three
 consecutive runs of the same translation on one CPython 3.11 produce three different SHA-256s.**
 Two causes, and they are different in kind:
 
@@ -270,7 +270,7 @@ carries no persistent id for a site, a climate, or a floor segment.
   (`CONTRACT_extraction-json.md` §2.1) and it carries no uuids at all. So *collector* stability is a
   separate, cleaner question.
 
-⚠ A cross-host or cross-run comparison must therefore canonicalise. `poc/tools/byte_identity.py`
+⚠ A cross-host or cross-run comparison must therefore canonicalise. `pocs/01_sketchup-export/tools/byte_identity.py`
 numbers UUID-shaped strings by first appearance (preserving aliasing, so a reference pointing at the
 wrong object still shows) and sorts **only** those four named lists. It must not sort more:
 `boundary` vertex order defines a face's orientation, and a blanket sort would report a wall and its
@@ -389,7 +389,7 @@ written by an older `honeybee-ph`. It remains a **shape** reference; it is not u
 fixture. Build fixtures with `Room.from_box`.
 
 ### 6.4 ph-navigator as a consumer — measured on a real upload, and read from its source
-*(POC-5, 2026-08-21 — `planning/POC/RESULTS/POC-5_results.md` §3; source = `ph-navigator-v2`)*
+*(POC-5, 2026-08-21 — `planning/01_sketchup-export/implementation/RESULTS/POC-5_results.md` §3; source = `ph-navigator-v2`)*
 
 - ⚠ **A face whose construction uses `EnergyMaterialNoMass` is invisible in the Model-tab viewer.**
   Its `ConstructionMaterialSchema` requires `thickness`/`conductivity`/`density`, so a no-mass
@@ -458,7 +458,7 @@ Read from each wheel's own `METADATA`, 2026-08-19:
 | `ph-units` | *none declared* | **BLDGTYP** |
 
 **The AGPL exposure is entirely Ladybug Tools' code.** The two BLDGTYP packages are our own
-copyright. Full briefing: `planning/RESULTS/PHASE-3_licence-question.md` — unresolved, and it must
+copyright. Full briefing: `planning/01_sketchup-export/feasibility/RESULTS/PHASE-3_licence-question.md` — unresolved, and it must
 be answered before v1 code is written.
 
 ⚠ Housekeeping regardless of the legal answer: **`ph-units` publishes no licence metadata.**

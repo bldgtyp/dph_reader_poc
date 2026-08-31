@@ -70,8 +70,8 @@ CAPTURE_TO_BASELINE = {
 def leaf(entity_path_id: str) -> str:
     """The entity identity: the last `persistent_id` in a contract-v2 path-qualified id.
 
-    `poc/ext/dph_plus_poc/collector.rb:597` builds it as `([kind] + path + [persistent_id]).join("_")`
-    and `poc/ext/tests/test_collector.rb:221` pins the two-placements case to
+    `pocs/01_sketchup-export/ext/dph_plus_poc/collector.rb:597` builds it as `([kind] + path + [persistent_id]).join("_")`
+    and `pocs/01_sketchup-export/ext/tests/test_collector.rb:221` pins the two-placements case to
     `%w[face_50_51 face_52_51]` — same leaf, different path.
     """
     return entity_path_id.rsplit("_", 1)[-1]

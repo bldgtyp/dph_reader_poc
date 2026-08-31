@@ -2,7 +2,7 @@
 
 **Status:** Draft v1 · 2026-08-19 · BLDGTYP (Ed May, John Mitchell)
 ✅ **POC-validated 2026-08-21** — a proof of concept built to this PRD ran end to end on five real
-models and closed PASS (`planning/POC/RESULTS/POC-5_results.md`). Its retro **§4 is the ranked list
+models and closed PASS (`planning/01_sketchup-export/implementation/RESULTS/POC-5_results.md`). Its retro **§4 is the ranked list
 of what a v1 must do differently**; where the POC contradicted this document, the section carries a
 dated correction in place. Read the retro before treating any uncorrected section as settled.
 ⚠ **Superseded as a product thesis, same day** — the strategy retrospective concluded the right
@@ -125,8 +125,8 @@ a reimplementation.
 designPH models, and measured — first at the Phase 3 spike (82 of 82 classified Adelphi faces, 87 KB
 of HBJSON, boot in 2.6 s), then across the whole five-model corpus: **545 of 545 classified faces,
 239 of 239 windows, 99 of 99 thermal bridges, none rejected.** Full evidence and the gates:
-[`planning/RESULTS/PHASE-3_results.md`](planning/RESULTS/PHASE-3_results.md) and
-[`planning/POC/RESULTS/`](planning/POC/RESULTS/.index.md).
+[`planning/01_sketchup-export/feasibility/RESULTS/PHASE-3_results.md`](planning/01_sketchup-export/feasibility/RESULTS/PHASE-3_results.md) and
+[`planning/01_sketchup-export/implementation/RESULTS/`](planning/01_sketchup-export/implementation/RESULTS/.index.md).
 
 Four constraints came with it, and each is load-bearing:
 
@@ -162,7 +162,7 @@ closure.
 
 ⚠ **The licence question is now live**, because vendoring honeybee (AGPL-3.0) is a decision rather
 than a possibility. Written up for counsel:
-[`planning/RESULTS/PHASE-3_licence-question.md`](planning/RESULTS/PHASE-3_licence-question.md).
+[`planning/01_sketchup-export/feasibility/RESULTS/PHASE-3_licence-question.md`](planning/01_sketchup-export/feasibility/RESULTS/PHASE-3_licence-question.md).
 **Resolve it before v1 code is written** (§9).
 
 **Retained as a genuine alternative, not a fallback in waiting:** *Ruby writes HBJSON directly* —
@@ -186,7 +186,7 @@ silently, would let a downstream consumer mistake an incomplete model for a comp
 
 **Carry the shading *geometry* even without the factors — ⚠ OUT of v1 scope again, pending a UI.**
 *(Promoted by Phase 0 §0.4 on the strength of the destination; withdrawn by Phase 1 §1.5 on the
-failure of the source rule. See `planning/RESULTS/PHASE-1_results.md`.)*
+failure of the source rule. See `planning/01_sketchup-export/feasibility/RESULTS/PHASE-1_results.md`.)*
 
 **The destination still stands.** Exterior context geometry has a well-formed home in HBJSON as
 `orphaned_shades` with `is_detached: true` and a `ShadePhPropertiesAbridged` block. That was never
@@ -311,7 +311,7 @@ case it is. Shrinking a window to please a validator would fabricate an area.
 
 ### 8.3 Assemblies
 
-*(Rewritten after Phase 1 — see `planning/RESULTS/PHASE-1_assembly-resolution.md`. The previous
+*(Rewritten after Phase 1 — see `planning/01_sketchup-export/feasibility/RESULTS/PHASE-1_assembly-resolution.md`. The previous
 version assumed `layer_table_<id>` was the source for every face; it is the source for under half.)*
 
 **First, read the area group — it decides which id namespace `assemblyID` is in, *and* which entity
@@ -379,7 +379,7 @@ population fivefold.
 
 This is the easiest place to be quietly wrong. Regression-test computed U-values against designPH's
 own reported values — ground truth for the Adelphi building is extracted to
-`planning/RESULTS/phpp/phpp_u-values_assemblies.csv` (12 assemblies) and `..._layers.csv` (56 layers).
+`planning/01_sketchup-export/feasibility/RESULTS/phpp/phpp_u-values_assemblies.csv` (12 assemblies) and `..._layers.csv` (56 layers).
 
 ⚠ **One dependency to be honest about: the model is not self-contained.** The `83ud`–`99ud` range is
 designPH's shipped default library, living in the plugin folder rather than in the `.skp`. The
@@ -452,10 +452,10 @@ a valid standard model a real downstream consumer can use.
 five outputs. Criterion 2 passed with one named consumer-side exception a v1 must plan around:
 **ph-navigator's viewer skips any face whose construction uses `EnergyMaterialNoMass`** — so a
 tier-2 (U-value-only) assembly renders without its envelope (Finding 71,
-`planning/POC/RESULTS/POC-5_results.md` §3.2; `00_Context/HONEYBEE_STACK.md` §6.4). The fix is
+`planning/01_sketchup-export/implementation/RESULTS/POC-5_results.md` §3.2; `00_Context/HONEYBEE_STACK.md` §6.4). The fix is
 BLDGTYP's on either side of that seam.
 
-⚠ **Two corrections from Phase 0 §0.4** (`planning/RESULTS/reference_hbjson_shape.md`):
+⚠ **Two corrections from Phase 0 §0.4** (`planning/01_sketchup-export/feasibility/RESULTS/reference_hbjson_shape.md`):
 
 - **The scoping in criterion 1 is load-bearing, not hedging.** The *reference* HBJSON does not
   validate against `honeybee-schema` 1.53.1 — 147 objects fail — but every failure sits inside
@@ -471,7 +471,7 @@ BLDGTYP's on either side of that seam.
 **Explicitly not a v1 gate:** numerical agreement with PHPP. That is v2, and chasing it now would drag
 `.ppp` parsing and shading straight back onto the critical path.
 
-**Regression corpus:** `_adephi_st_example_files/` is the primary reference — the same building as
+**Regression corpus:** `corpus/adelphi/` is the primary reference — the same building as
 designPH `.skp`, `.ppp`, PHPP `.xlsm`, HBJSON, Rhino `.3dm` and Grasshopper `.gh`. Secondary: the
 `08_DesignPH` folders that actually hold designPH models *(verified on disk 2026-08-19)* —
 2523 Wellington (2.1.10 + 2.2.29), 2524 Linde Residence (2.1.15), 2414 Bluff Reach (2.2.24),
@@ -482,12 +482,12 @@ Street, Arrowhead Ridge, Ikon Optima Plus, and 415 Flint — those folders hold 
 `adelphi-honeybee-json.hbjson` was supplied: schema 1.53.1, 6 rooms / 52 faces / 44 apertures /
 38 spaces / 1287 orphaned shades. It is a **shape reference**, not an equality target — it came from
 the Rhino route with solved adjacency, while v1 emits one non-solid Room by design; see
-`planning/00_OVERVIEW.md`)*. The formats remain only **approximately aligned**, so a numerical
+`planning/01_sketchup-export/feasibility/00_OVERVIEW.md`)*. The formats remain only **approximately aligned**, so a numerical
 mismatch between them is not by itself evidence of a translator bug.
 
 ✅ **The regression corpus is now captured and reconciled** *(POC-2, 2026-08-21)*. Five models —
 Adelphi, Bluff Reach, Wellington, `250703 - Linde Residence`, `250708` — spanning designPH
-2.1.15–2.2.29 and SketchUp 22–26, live extractions banked in `poc/_private/fixtures/` and checked
+2.1.15–2.2.29 and SketchUp 22–26, live extractions banked in `pocs/01_sketchup-export/_private/fixtures/` and checked
 against the offline scan of all 14 corpus files. Between them they exercise every path v1 has:
 thermal bridges (99), all four assembly tiers, multi-section assemblies, TFA, `*Auto`-only
 assemblies, `descName` overrides at scale, and a model (`250708`) that resolves **nothing** in-model.
@@ -513,7 +513,7 @@ much harder to object to a free community bridge that *sells designPH licences*.
 
 ⚠ **Naming / prior art.** BLDGTYP already shipped two small public extensions under the dPH+ brand —
 `dPH+ Rooms` (~2021) and `dPH+ Windows` — at `~/Dropbox/bldgtyp-00/00_PH_Tools/design-ph-plus/`.
-Useful precedent for the PHI conversation (see `planning/PHASE-5`), but decide before release whether
+Useful precedent for the PHI conversation (see `planning/01_sketchup-export/feasibility/PHASE-5`), but decide before release whether
 DesignPH-PLUS supersedes that branding, and make sure the new extension's Ruby module and menu
 namespace cannot collide with a legacy `dPH+` install on a user's machine.
 

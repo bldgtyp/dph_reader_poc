@@ -4,7 +4,7 @@
 # ///
 """Spike B — **H5: the unchanged translator, to the POC's own numbers.**
 
-Feeds every headless capture to `poc/py/dph_translator` and grades the result against the POC's
+Feeds every headless capture to `pocs/01_sketchup-export/py/dph_translator` and grades the result against the POC's
 acceptance table. **Nothing in the translator is modified.** If a headless capture makes it
 misbehave, that is a *finding about the capture*, recorded — never a patch applied (HEADLESS-B §7).
 
@@ -26,7 +26,7 @@ and "confirmed on one model is confirmed on nothing" is this repo's most-repeate
 capture, so they are **recorded, not graded** — they can prove the translator does not fall over,
 which is a different claim from proving it is right.
 
-⚠ Runs on the POC's own interpreter (`poc/py/.venv`), which holds exactly the eight vendored
+⚠ Runs on the POC's own interpreter (`pocs/01_sketchup-export/py/.venv`), which holds exactly the eight vendored
 wheels. `make venv` builds it.
 
     uv run b5_h5_translate.py --captures _private/out/captures --fixtures _private/fixtures \\
@@ -41,7 +41,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-#: The POC's acceptance table (`planning/POC/RESULTS/POC-4_results.md`), per model. Read as
+#: The POC's acceptance table (`planning/01_sketchup-export/implementation/RESULTS/POC-4_results.md`), per model. Read as
 #: "the translator must still say exactly this". ⚠ Restated here rather than derived because it is
 #: the *prior* result being reproduced — a number computed from the input under test could not
 #: disagree with it.
@@ -170,9 +170,9 @@ def main() -> int:
     parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[3])
     args = parser.parse_args()
 
-    python = args.repo_root / "poc" / "py" / ".venv" / "bin" / "python"
+    python = args.repo_root / "pocs" / "01_sketchup-export" / "py" / ".venv" / "bin" / "python"
     if not python.exists():
-        print(f"VERDICT H5: FAIL — the POC interpreter is missing at {python}; run `cd poc && make venv`")
+        print(f"VERDICT H5: FAIL — the POC interpreter is missing at {python}; run `cd pocs/01_sketchup-export && make venv`")
         return 1
 
     runner = args.out_dir / "_run_translator.py"

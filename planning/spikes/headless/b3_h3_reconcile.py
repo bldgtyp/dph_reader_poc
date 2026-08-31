@@ -4,7 +4,7 @@
 # ///
 """Spike B — **H3: reconciliation against the offline baselines**, via the POC's own harness.
 
-Runs `poc/tools/check_extraction.py` **unchanged** over the headless captures. That tool is the
+Runs `pocs/01_sketchup-export/tools/check_extraction.py` **unchanged** over the headless captures. That tool is the
 phase's evidential instrument: Phases 0 and 1 counted every designPH record in the corpus offline,
 key by key, so "did the walk find everything?" has a real answer rather than a feeling. Nothing here
 re-implements any of it — this wrapper exists to produce one verdict line and, more importantly, to
@@ -67,7 +67,7 @@ def main() -> int:
     parser.add_argument("--repo-root", type=Path, default=Path(__file__).resolve().parents[3])
     args = parser.parse_args()
 
-    harness_path = args.repo_root / "poc" / "tools" / "check_extraction.py"
+    harness_path = args.repo_root / "pocs" / "01_sketchup-export" / "tools" / "check_extraction.py"
     captures = sorted(args.captures.glob("*.extraction.json"))
     if not captures:
         print(f"VERDICT H3: FAIL — no captures under {args.captures}")

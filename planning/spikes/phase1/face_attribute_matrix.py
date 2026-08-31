@@ -21,8 +21,8 @@ block is sound; a block's existence is not proof the entity is still in the mode
 Usage
 -----
     uv run face_attribute_matrix.py MODEL.skp [MODEL.skp ...] \\
-        --md  planning/RESULTS/PHASE-1_face-attribute-matrix.md \\
-        --json planning/RESULTS/baselines/phase1_face_attributes.json
+        --md  planning/01_sketchup-export/feasibility/RESULTS/PHASE-1_face-attribute-matrix.md \\
+        --json planning/01_sketchup-export/feasibility/RESULTS/baselines/phase1_face_attributes.json
 """
 
 from __future__ import annotations

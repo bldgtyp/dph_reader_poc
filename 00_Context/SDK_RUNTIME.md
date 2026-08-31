@@ -11,7 +11,7 @@ official SDK before trusting it commercially.
 Sits beside [`SKETCHUP_RUNTIME.md`](SKETCHUP_RUNTIME.md) (SketchUp as a *host*, the Ruby API, the
 `HtmlDialog`) and covers the other route: reading a `.skp` with **no SketchUp installed and no
 SketchUp seat**. Written for the HEADLESS phase
-([`../planning/HEADLESS/`](../planning/HEADLESS/.index.md)).
+([`../planning/02_headless-reader/`](../planning/02_headless-reader/.index.md)).
 
 ---
 
@@ -109,7 +109,7 @@ SUResult SUEntityGetID(SUEntityRef entity, int32_t* id);              // session
 
 **This is the most load-bearing find for a drop-in headless collector.** The POC's contract-v2 `id`
 is `([kind] + ancestor persistent_ids + [own persistent_id]).join("_")`
-(`poc/ext/dph_plus_poc/collector.rb:597`), so a C-SDK reader can reproduce byte-identical ids.
+(`pocs/01_sketchup-export/ext/dph_plus_poc/collector.rb:597`), so a C-SDK reader can reproduce byte-identical ids.
 ⚠ The contract's separate `entity_id` field is the **session-local** `entityID` and must never be
 compared across captures.
 
@@ -132,7 +132,7 @@ compared across captures.
 ## 4. ⛔ The five traps that make a C-SDK reader wrong while looking right
 
 Every one of these produced a **plausible number on a real model** before it was caught.
-`planning/HEADLESS/RESULTS/HEADLESS-A_results.md` §3 has the accounting for 4.1-4.4;
+`planning/02_headless-reader/RESULTS/HEADLESS-A_results.md` §3 has the accounting for 4.1-4.4;
 `HEADLESS-B_results.md` for 4.5.
 
 ### 4.1 `SUEntityGetAttributeDictionary` is a get-or-CREATE
@@ -262,7 +262,7 @@ that. Recorded as unmeasured rather than estimated.
 Spike A proved the SDK *exposes* the data. Spike B emitted the frozen contract from it and compared
 against the live SketchUp captures: **0 unexplained differences on 5/5 models, worst geometry
 deviation 0.000000 mm**, and the untouched translator then produced **canonically identical
-HBJSON**. [`../planning/HEADLESS/RESULTS/HEADLESS-B_results.md`](../planning/HEADLESS/RESULTS/HEADLESS-B_results.md).
+HBJSON**. [`../planning/02_headless-reader/RESULTS/HEADLESS-B_results.md`](../planning/02_headless-reader/RESULTS/HEADLESS-B_results.md).
 
 **The structure that makes it affordable.** The contract's `counts` are **placement** counts
 (Adelphi's `faces_walked` is 1,023,558) while every attribute is a property of the **entity**.

@@ -33,7 +33,7 @@ from pathlib import Path
 
 import numpy as np
 
-FIXTURE = Path(__file__).resolve().parents[3] / "poc/_private/fixtures/adelphi-designph_COPY.extraction.json"
+FIXTURE = Path(__file__).resolve().parents[3] / "pocs/01_sketchup-export/_private/fixtures/adelphi-designph_COPY.extraction.json"
 IN_TO_M = 0.0254
 
 

@@ -10,7 +10,7 @@ Everything below was exercised end to end in SketchUp — first on 2026-08-19 ag
 classified faces, 239 of 239 windows, 99 of 99 thermal bridges, TFA on the three models that carry
 it. Where a claim here comes from one model, it says so.
 
-⚠ **Everything in §2's schema is contract v2** (`planning/POC/CONTRACT_extraction-json.md`, frozen
+⚠ **Everything in §2's schema is contract v2** (`planning/01_sketchup-export/implementation/CONTRACT_extraction-json.md`, frozen
 2026-08-21). v1 differed in three places and each one was a real bug: the window transform, the
 aperture rectangle, and the frame/glazing libraries shipping per-window.
 
@@ -53,7 +53,7 @@ Pyodide proxies. Proxies leak (`.destroy()`), and a string is the only thing all
 back to `assemblyIDAuto`, which keeps it. `areaGroupIDAuto` does not exist; reading it finds nothing
 and loses `250708`'s 92 assemblies in silence. Adelphi masks it, because every one of its classified
 faces carries `areaGroupID`. The Phase 3 spike shipped exactly this typo
-(`planning/POC/RESULTS/POC-2_results.md` finding 50), **and this document carried it too until
+(`planning/01_sketchup-export/implementation/RESULTS/POC-2_results.md` finding 50), **and this document carried it too until
 2026-08-28**, when the HEADLESS Spike-A expected-value derivation hit it again from the offline
 baseline (Linde is the model that needs both keys: 66 + 8 = its 74 classified faces).
 
@@ -116,7 +116,7 @@ window 1.2–3.3 m from its own host plane. Ship `accumulated_parent * instance.
 
 ⚠ **Superseded as a schema.** The shape below is the Phase 3 *spike*'s, kept because it is the
 minimum that proved the seam works. The real one is
-[`planning/POC/CONTRACT_extraction-json.md`](../planning/POC/CONTRACT_extraction-json.md), frozen at
+[`planning/01_sketchup-export/implementation/CONTRACT_extraction-json.md`](../planning/01_sketchup-export/implementation/CONTRACT_extraction-json.md), frozen at
 **v2**, and it differs in ways that matter — ids are **path-qualified** (`face_<parents…>_<pid>`,
 not `face_<entityID>`, because an entityID names an entity *inside its definition* and a component
 placed twice is two envelope surfaces); inner loops are **carried**, not flagged; and edges,
@@ -428,7 +428,7 @@ library, outside the `.skp`.
 
 So a reader must handle four tiers, and cannot assume it can produce a layered
 `OpaqueConstruction` for every face. PRD §8.3 is written around this. Detail:
-`planning/RESULTS/PHASE-1_assembly-resolution.md`.
+`planning/01_sketchup-export/feasibility/RESULTS/PHASE-1_assembly-resolution.md`.
 
 Tier distribution across the whole captured corpus, 2026-08-21 — the measurement the PRD was
 rewritten on the *expectation* of:
@@ -547,13 +547,13 @@ resolve them — corrected 2026-08-21:
 
 | File | Use |
 |---|---|
-| `poc/_private/fixtures/*.extraction.json` | ★ **The five real captures**, contract v2, gitignored (client data). `MANIFEST.md` says which model each came from |
-| `poc/_private/fixtures/adelphi-designph_COPY.hbjson` | ★ What we actually produce today — 1 room, 82 faces, 46 apertures, 1 TFA space |
-| `planning/RESULTS/validation/phase3_sketchup_output.hbjson` | The Phase 3 *spike*'s output — 1 room, 82 faces, no apertures, no spaces. Superseded; kept as the baseline the POC is measured against |
-| `planning/RESULTS/validation/phase3_sketchup_hbjson_core.json` | Its schema verdict |
-| `_adephi_st_example_files/adelphi-honeybee-json.hbjson` | **Shape** reference only. 6 solid rooms from the Rhino route, solved adjacency. **Never an equality target**, and no longer loadable (`tfa_override`) |
-| `_adephi_st_example_files/adelphi-phpp.xlsm` | Numerical ground truth — areas, U-values, TFA |
-| `planning/RESULTS/phpp/*.csv` | That ground truth, extracted |
+| `pocs/01_sketchup-export/_private/fixtures/*.extraction.json` | ★ **The five real captures**, contract v2, gitignored (client data). `MANIFEST.md` says which model each came from |
+| `pocs/01_sketchup-export/_private/fixtures/adelphi-designph_COPY.hbjson` | ★ What we actually produce today — 1 room, 82 faces, 46 apertures, 1 TFA space |
+| `planning/01_sketchup-export/feasibility/RESULTS/validation/phase3_sketchup_output.hbjson` | The Phase 3 *spike*'s output — 1 room, 82 faces, no apertures, no spaces. Superseded; kept as the baseline the POC is measured against |
+| `planning/01_sketchup-export/feasibility/RESULTS/validation/phase3_sketchup_hbjson_core.json` | Its schema verdict |
+| `corpus/adelphi/adelphi-honeybee-json.hbjson` | **Shape** reference only. 6 solid rooms from the Rhino route, solved adjacency. **Never an equality target**, and no longer loadable (`tfa_override`) |
+| `corpus/adelphi/adelphi-phpp.xlsm` | Numerical ground truth — areas, U-values, TFA |
+| `planning/01_sketchup-export/feasibility/RESULTS/phpp/*.csv` | That ground truth, extracted |
 
 ⚠ The corpus formats are **only approximately aligned**. A mismatch between them is not by itself
 evidence of a bug.

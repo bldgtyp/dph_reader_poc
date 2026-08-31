@@ -16,7 +16,7 @@ upstream defect: `Model.from_dict` → `to_dict` preserves 152 of 152, and only 
 cross-reference. The effect is diff noise between re-exports, nothing more
 (`00_Context/HONEYBEE_STACK.md` §4).
 
-★ **The canonicaliser is `poc/tools/byte_identity.py`'s own, imported rather than copied**, so this
+★ **The canonicaliser is `pocs/01_sketchup-export/tools/byte_identity.py`'s own, imported rather than copied**, so this
 gate cannot drift from the POC's — and so it inherits the one property that matters:
 
 ⚠ **A canonicaliser that normalises too much is a check that cannot fail.** It renumbers UUIDs
@@ -48,12 +48,12 @@ from sdk import load_module
 
 
 def load_canonicaliser(repo_root: Path) -> Any:
-    """Import `poc/tools/byte_identity.py` and use **its** `canonicalise`, never a copy.
+    """Import `pocs/01_sketchup-export/tools/byte_identity.py` and use **its** `canonicalise`, never a copy.
 
     Two canonicalisers would drift, and the failure mode of a drifted one is a check that quietly
     stops being able to fail. The module imports cleanly without running anything.
     """
-    return load_module(repo_root / "poc" / "tools" / "byte_identity.py", "byte_identity")
+    return load_module(repo_root / "pocs" / "01_sketchup-export" / "tools" / "byte_identity.py", "byte_identity")
 
 
 def unsign_zeros(document: Any) -> tuple[Any, int]:
@@ -266,7 +266,7 @@ def main() -> int:
         json.dumps(
             {
                 "provenance": "third-party SDK re-host — feasibility-only evidence",
-                "canonicaliser": "poc/tools/byte_identity.py:canonicalise (imported, not copied)",
+                "canonicaliser": "pocs/01_sketchup-export/tools/byte_identity.py:canonicalise (imported, not copied)",
                 "self_test_failures": self_test_failures,
                 "self_test_cases_exercised": sorted(self_test_exercised),
                 "self_test_cases_never_exercised": unexercised,

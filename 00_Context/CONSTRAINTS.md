@@ -4,7 +4,7 @@ Every hard limit, blocker, and non-negotiable rule found across spike Phases 0�
 complete POC (closed PASS, 2026-08-21)**, with a pointer to the evidence. **Read this before
 planning any development work** — a future V-0 included; the detail lives in the other
 `00_Context/` documents, and the ranked list of what a v1 must do differently is
-`planning/POC/RESULTS/POC-5_results.md` §4.
+`planning/01_sketchup-export/implementation/RESULTS/POC-5_results.md` §4.
 
 ⚠ It is no longer one page. That is deliberate: running the pipeline against real models roughly
 doubled the list, and every addition is something that was *measured* rather than reasoned about.
@@ -28,7 +28,7 @@ Legend: 🔴 blocker · 🟠 constraint you must design around · 🔵 rule with
 Everything below §1 was written for the **extension route** — code running *inside* SketchUp, in
 Ruby and in Pyodide inside an `HtmlDialog`. Since 2026-08-29 a second route is proven: a
 **headless C-SDK reader**, a plain CPython process with no SketchUp installed and no SketchUp seat
-([`HEADLESS_VIABILITY.md`](HEADLESS_VIABILITY.md), `planning/HEADLESS/`).
+([`HEADLESS_VIABILITY.md`](HEADLESS_VIABILITY.md), `planning/02_headless-reader/`).
 
 ⚠ **Applying the wrong route's constraints is the mistake this section exists to prevent.** They
 are very different, and the headless one is *far* less constrained technically and *equally*
@@ -66,7 +66,7 @@ runtime knowledge is not.
 | | Constraint | Evidence |
 |---|---|---|
 | 🔴 | **Never parse the `.ppp`.** Licence §2.4(a) names file formats explicitly. Reading by eye is fine | [`PPP_EXPORT.md`](PPP_EXPORT.md) |
-| 🔴 | **The AGPL question is unresolved and blocks v1 / any distribution.** Vendoring honeybee (AGPL-3.0) is now a decision, not a possibility. *(2026-08-19, Ed: internal, never-distributed POC work proceeds — AGPL obligations attach to conveying, not private use; working assumption, for counsel. `planning/POC/00_POC_OVERVIEW.md` §2.3)* | `planning/RESULTS/PHASE-3_licence-question.md` |
+| 🔴 | **The AGPL question is unresolved and blocks v1 / any distribution.** Vendoring honeybee (AGPL-3.0) is now a decision, not a possibility. *(2026-08-19, Ed: internal, never-distributed POC work proceeds — AGPL obligations attach to conveying, not private use; working assumption, for counsel. `planning/01_sketchup-export/implementation/00_POC_OVERVIEW.md` §2.3)* | `planning/01_sketchup-export/feasibility/RESULTS/PHASE-3_licence-question.md` |
 | 🟠 | Exposure is entirely **Ladybug Tools'** code. `honeybee-ph` and `ph-units` are BLDGTYP's own copyright | [`HONEYBEE_STACK.md`](HONEYBEE_STACK.md) §8 |
 | 🟠 | **"PHI actively objects" is the only true deal-breaker** in the plan. Every technical obstacle so far has a workaround; that one does not | PRD §9 |
 | 🔵 | Reading `DesignPH_dict` is defensible: the user's own `.skp`, Trimble's public API | PRD §9 |
@@ -109,7 +109,7 @@ runtime knowledge is not.
 | 🔴 | **Type-check every attribute read.** `areaGroupID` is a `String` on 1359 of 1441 faces | [`DESIGNPH_DATA_MODEL.md`](DESIGNPH_DATA_MODEL.md) §5.4 |
 | 🔴 | **A multi-section assembly's U-value is ISO 6946's MEAN OF TWO LIMITS**, not an area-weighted lambda — and `surf2_percentage` is a **percentage**, so `0.0625` means 0.06 % framing, not 6 %. Getting either wrong is silent and flattering: 8 % low on Linde's `06ud` | [`DESIGNPH_DATA_MODEL.md`](DESIGNPH_DATA_MODEL.md) §7.2 |
 | 🟠 | **designPH's assembly U-value INCLUDES the films; honeybee's `u_value` does not.** Worth 0.004–0.005 W/m²K — enough on its own to fail a ±0.005 regression | same |
-| 🟠 | **Assemblies do not always carry a build-up** — 254 of 532 corpus references do. The rest resolve only against designPH's *installed* CSV library, outside the model | `planning/RESULTS/PHASE-1_assembly-resolution.md` |
+| 🟠 | **Assemblies do not always carry a build-up** — 254 of 532 corpus references do. The rest resolve only against designPH's *installed* CSV library, outside the model | `planning/01_sketchup-export/feasibility/RESULTS/PHASE-1_assembly-resolution.md` |
 | 🟠 | **Only 82 of 1441 tagged faces on Adelphi are classified**, out of ~8037 live faces. The unclassified majority is the design problem, not an edge case | §7 below |
 | 🔵 | Internal units are **always inches**. `× 0.0254` | [`DATA_CONTRACTS.md`](DATA_CONTRACTS.md) §2.2 |
 | 🔵 | Carry the accumulated `Geom::Transformation` through groups and components | same |
@@ -142,7 +142,7 @@ runtime knowledge is not.
 | 🔵 | `honeybee-schema` requires a `Room` to have **≥ 4 faces**. Build validation fixtures with six | same |
 | 🔵 | **`Room` takes ownership of its faces** (`face._parent`). A throwaway second Room steals them | same |
 | 🔵 | Identifiers **truncate at 100 chars, silently**. Path-qualified ids are long enough to collide | same |
-| 🔵 | **Two exports of one model are not the same file.** Three runs on one CPython give three hashes: `honeybee_ph` mints a `uuid4` per newly *constructed* object (152 distinct / 301 occurrences on Adelphi) and `honeybee-energy` orders four lists out of a `set`. ⚠ Reordering changes no bytes of *length*, so two runs differ in hash at identical size. ✅ **Not an upstream defect and not a round-trip problem** — `from_dict` → `to_dict` preserves 152 of 152, measured. Consequence is diff noise, not breakage; a cross-run or cross-host comparison must canonicalise, and must **not** sort geometry, where vertex order is orientation | [`HONEYBEE_STACK.md`](HONEYBEE_STACK.md) §4, `planning/POC/RESULTS/POC-4_results.md` §3 |
+| 🔵 | **Two exports of one model are not the same file.** Three runs on one CPython give three hashes: `honeybee_ph` mints a `uuid4` per newly *constructed* object (152 distinct / 301 occurrences on Adelphi) and `honeybee-energy` orders four lists out of a `set`. ⚠ Reordering changes no bytes of *length*, so two runs differ in hash at identical size. ✅ **Not an upstream defect and not a round-trip problem** — `from_dict` → `to_dict` preserves 152 of 152, measured. Consequence is diff noise, not breakage; a cross-run or cross-host comparison must canonicalise, and must **not** sort geometry, where vertex order is orientation | [`HONEYBEE_STACK.md`](HONEYBEE_STACK.md) §4, `planning/01_sketchup-export/implementation/RESULTS/POC-4_results.md` §3 |
 | 🟠 | `Model.from_dict` is **~100× the cost of writing** — 36 s for 1441 faces on Chromium 88, 9 s on native CPython. Never call it on a UI path | [`HONEYBEE_STACK.md`](HONEYBEE_STACK.md) §5 |
 | 🟠 | `honeybee-energy`'s **default construction set does not validate** against published `honeybee-schema` (either version). Open v1 decision: emit one at all? | [`HONEYBEE_STACK.md`](HONEYBEE_STACK.md) §6 |
 | 🟠 | **Version skew is real**: we vendor honeybee-core 1.64.65 and stamp schema 1.53.1; a live Ladybug install runs 1.64.55 / schema **2.1.2**. Three versions in play | same, §6.2 |
@@ -223,12 +223,12 @@ Not blockers — the actual work v1 has to do well.
 | ~~**Large real models end to end**~~ | ✅ **Now tested.** Bluff Reach: 194 classified faces, 99 edges, 2.56 M face visits, 9.7 s walk, 686 KB HBJSON. ⚠ Walk time tracks **placements**, not model size — Linde walks 2466 in 100 ms and carries far more assembly data |
 | **A model with >1000 classified faces** | The largest in the corpus is 194. 1441 was *tagged*, not classified, and 8037 was live faces. Nothing here says what a genuinely large envelope costs |
 | ~~**`frames_ud` / `glazing_ud` resolution**~~ | ✅ **Corrected 2026-08-21 — the data is in the model.** Both tables decode to the full PHPP frame/glazing schema (per-edge U, widths, `psi_G*`, `psi_F*`, `chi_GT`; g-value and U-value) on **3 of 5** corpus models. The POC does not ship them, which is a scope choice and a v1 opportunity — not a limit of designPH. [`DESIGNPH_DATA_MODEL.md`](DESIGNPH_DATA_MODEL.md) §7.0.1. ⚠ Still open: the 2 models carrying neither |
-| ~~**The report at scale**~~ | ✅ **Asked and answered (POC-5): it is not usable as a flat list.** Bluff Reach's dialog shows 8 omissions "…and 132 more"; Linde's unclassified census is 2392 faces. v1 needs aggregation-by-reason and report-row → select-in-SketchUp linking — `planning/POC/RESULTS/POC-5_results.md` §4.3 |
+| ~~**The report at scale**~~ | ✅ **Asked and answered (POC-5): it is not usable as a flat list.** Bluff Reach's dialog shows 8 omissions "…and 132 more"; Linde's unclassified census is 2392 faces. v1 needs aggregation-by-reason and report-row → select-in-SketchUp linking — `planning/01_sketchup-export/implementation/RESULTS/POC-5_results.md` §4.3 |
 | **ph-navigator cannot display a no-mass-construction face** | Its viewer schema requires `thickness`/`conductivity`/`density`, so an `EnergyMaterialNoMass` layer (a tier-2 assembly) makes the face vanish, miscounted as an "air boundary" — apertures vanish with it. The HBJSON is right (renders whole in Rhino/GH); the limit is the viewer's, and both sides are BLDGTYP's to fix. Finding 71, `HONEYBEE_STACK.md` §6.4 |
 
 ## 8.1 What the first real export settled — and what it opened
 
-*(2026-08-21, Adelphi inside SketchUp 22.0.353. `planning/POC/RESULTS/`.)*
+*(2026-08-21, Adelphi inside SketchUp 22.0.353. `planning/01_sketchup-export/implementation/RESULTS/`.)*
 
 ✅ **Settled by running it:**
 
@@ -367,7 +367,7 @@ the re-capture, it does not replace it.
   is what let the first be closed offline while the second waits for SketchUp.
 - ⚠ **A tool that drives another tool inherits its defaults — including where it writes.**
   `byte_identity.py` calls `verify_in_chrome.py`, whose baseline defaults to the **committed**
-  `planning/POC/RESULTS/baselines/` and embeds 400 characters of the translated model. Run against
+  `planning/01_sketchup-export/implementation/RESULTS/baselines/` and embeds 400 characters of the translated model. Run against
   the real corpus, that put client HBJSON in the repo. Caught by reading `git status`, not by a
   check. **A default output location is a decision the composing tool has to make explicitly.**
 - ⚠ **Asserting the call is not asserting the surface — four times in one phase.** The banner

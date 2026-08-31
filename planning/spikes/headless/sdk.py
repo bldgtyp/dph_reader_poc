@@ -7,7 +7,7 @@
 ⚠ **PROVENANCE.** The framework this loads is a **third-party re-host** of Trimble's proprietary,
 EULA-gated `SketchUpAPI.framework` (`martijnberger/pyslapi` release 0.24), used here because the
 official SDK is behind a Request Access form with no reported turnaround
-(`planning/HEADLESS/RESULTS/HEADLESS-A_results.md` §1). Ed authorised this **for time-boxed laptop
+(`planning/02_headless-reader/RESULTS/HEADLESS-A_results.md` §1). Ed authorised this **for time-boxed laptop
 feasibility only, in parallel with filing Trimble's form** (2026-08-28). Nothing built on it ships,
 and every gate result derived through it is labelled feasibility-only evidence — it must be re-run
 against the official SDK before anything is trusted. **No EULA ships in that zip**, so licensing
@@ -210,7 +210,7 @@ class SDK:
         if not self.path.exists():
             raise SystemExit(
                 f"SketchUpAPI framework not found at {self.path}\n"
-                "Stage it first — see planning/HEADLESS/RESULTS/HEADLESS-A_results.md §1.1"
+                "Stage it first — see planning/02_headless-reader/RESULTS/HEADLESS-A_results.md §1.1"
             )
         self._raw_lib = ctypes.CDLL(str(self.path))
         self.headers = self.path.parent / "Headers"

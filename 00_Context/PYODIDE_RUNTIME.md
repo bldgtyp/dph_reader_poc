@@ -55,7 +55,7 @@ uv run planning/spikes/pyodide/verify_in_chrome.py --mode http --chrome <chromiu
 ```
 
 ⚠ **Raising the Pyodide pin means raising the supported SketchUp floor.** That is a product decision
-with a technical price, unresolved — PRD §7.4 and `planning/RESULTS/PHASE-3_results.md` §3.6.
+with a technical price, unresolved — PRD §7.4 and `planning/01_sketchup-export/feasibility/RESULTS/PHASE-3_results.md` §3.6.
 
 ## 3. What `pyodide-core` actually contains
 
@@ -214,7 +214,7 @@ Catch, format `f"{type(e).__name__}: {e}"`, and return it as data.
 
 Pyodide and `micropip` are **MPL-2.0**; CPython is PSF. The copyleft exposure comes from the
 *payload*, not the runtime — see [`HONEYBEE_STACK.md`](HONEYBEE_STACK.md) §7 and
-`planning/RESULTS/PHASE-3_licence-question.md`.
+`planning/01_sketchup-export/feasibility/RESULTS/PHASE-3_licence-question.md`.
 
 ## 9. Reproducing the setup
 

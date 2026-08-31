@@ -9,7 +9,7 @@ distinction the phase exists to make.
 Nothing here touches the DOM, `js`, `pyodide` or the filesystem. Every entry point takes plain data
 and returns a JSON-safe `dict`, so the JS side never has to reach into a Python object.
 
-Steps, matching `planning/PHASE-3_pyodide-spike.md`:
+Steps, matching `planning/01_sketchup-export/feasibility/PHASE-3_pyodide-spike.md`:
 
     step2_import_stack()          — import honeybee + honeybee-ph, timing each module
     step3_build_demo_model()      — a Room from a hard-coded box + one PH Space, round-tripped

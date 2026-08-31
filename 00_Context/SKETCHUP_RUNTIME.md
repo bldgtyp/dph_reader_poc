@@ -2,7 +2,7 @@
 
 What SketchUp actually gives an extension, and what it takes away. Everything here is **observed on
 SketchUp Pro 2022 (22.0.353), macOS arm64 (`arm64-darwin20`)** unless marked otherwise, most of it
-during Phase 3 (`planning/RESULTS/PHASE-3_results.md`).
+during Phase 3 (`planning/01_sketchup-export/feasibility/RESULTS/PHASE-3_results.md`).
 
 Companion notes: [`PYODIDE_RUNTIME.md`](PYODIDE_RUNTIME.md) for what runs *inside* the dialog,
 [`CONSTRAINTS.md`](CONSTRAINTS.md) for the short list of things that will stop you.
@@ -225,7 +225,7 @@ Cost: SketchUp feels sluggish while the dialog is open. Acceptable, bounded, and
 
 ### Rule 3 — ⛔ nothing repaints while the main thread is busy
 
-*(Measured 2026-08-21, POC-4 run D. `planning/POC/RESULTS/POC-4_results.md` §6.7.)*
+*(Measured 2026-08-21, POC-4 run D. `planning/01_sketchup-export/implementation/RESULTS/POC-4_results.md` §6.7.)*
 
 Rules 1 and 2 are about work that *cannot proceed*. Rule 3 is about work that proceeds perfectly
 while the user is shown nothing at all, which is why it took a live run and a user's question to
@@ -328,8 +328,8 @@ if (host && host.spike_ready) host.spike_ready("");   // page → Ruby, once loa
 
 ## 7. Reading the model — API traps
 
-Confirmed live during Phase 1 (`planning/RESULTS/PHASE-1_results.md`) and the POC's first real
-export (2026-08-21, `planning/POC/RESULTS/`).
+Confirmed live during Phase 1 (`planning/01_sketchup-export/feasibility/RESULTS/PHASE-1_results.md`) and the POC's first real
+export (2026-08-21, `planning/01_sketchup-export/implementation/RESULTS/`).
 
 - **`entity.attribute_dictionaries` returns `nil`**, not an empty collection, when an entity has
   none. Easy `NoMethodError`.
@@ -479,7 +479,7 @@ Two defences, and use both:
   `File.expand_path(Sketchup.active_model.path) == File.expand_path(path)` and **stop** if it does
   not. Never carry on and never guess.
 
-`poc/ext/tests/run_collector_console.rb` implements both (`Dph.here` and `Dph.sweep`).
+`pocs/01_sketchup-export/ext/tests/run_collector_console.rb` implements both (`Dph.here` and `Dph.sweep`).
 
 ### 8.2 ⚠ `Sketchup::Model#path` is not the path of the file you opened
 
@@ -628,7 +628,7 @@ last one of these; that is what the human runs are for.
 ## 12. Measured, inside SketchUp 2022 — the numbers to compare against
 
 *(2026-08-21, SketchUp **22.0.353**, macOS arm64-darwin20, Ruby **2.7.2**. Full record:
-`planning/POC/RESULTS/POC-1_results.md`.)*
+`planning/01_sketchup-export/implementation/RESULTS/POC-1_results.md`.)*
 
 | | SketchUp 2022 | Headless Chromium 88 snapshot |
 |---|--:|--:|

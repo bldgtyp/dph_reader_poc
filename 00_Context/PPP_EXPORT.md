@@ -28,7 +28,7 @@ algorithms, **file formats or programming interfaces**." On a plain reading, wri
 is reverse-engineering a file format, named explicitly.
 
 **§2.4(d)** permits derivative works "expressly authorized **in writing**", so PHI *can* authorise
-`.ppp` access. That is a v2 conversation and is staged as Phase 5 (`planning/PHASE-5_phi-and-licence.md`).
+`.ppp` access. That is a v2 conversation and is staged as Phase 5 (`planning/01_sketchup-export/feasibility/PHASE-5_phi-and-licence.md`).
 
 ## 2. Why this document exists at all
 
@@ -41,7 +41,7 @@ already decided, and the reasoning is here so it does not have to be rediscovere
 Observed by opening the file, which the rule permits. Nothing here required analysis, and nothing
 here is enough to build on.
 
-`_adephi_st_example_files/adelphi-designph_PHPP10.ppp`, 157,764 bytes:
+`corpus/adelphi/adelphi-designph_PHPP10.ppp`, 157,764 bytes:
 
 - It is **text, UTF-16LE encoded**, not a binary container.
 - It opens with a metadata block whose first data line is a **version banner** naming the exporting
@@ -132,4 +132,4 @@ The licence carries the standard carve-out for what applicable law protects. EU 
 that reaches a US developer depends on governing law. **Unresolved, and for counsel** (PRD §9).
 
 That question is separate from, and must not be conflated with, the AGPL question about our own
-vendored dependencies (`planning/RESULTS/PHASE-3_licence-question.md` §6).
+vendored dependencies (`planning/01_sketchup-export/feasibility/RESULTS/PHASE-3_licence-question.md` §6).

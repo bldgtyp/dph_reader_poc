@@ -28,33 +28,36 @@ This repository is a **cleaned export** of the working repo. Removed before shar
 - every PHPP workbook, the `.ppp` export, and every client `.skp` / `.hbjson` / `.3dm` / `.gh`
   (the Adelphi example set and the secondary corpus);
 - the per-model attribute dumps and baselines derived from client models;
-- the PHPP-extracted CSVs and the captured client outputs (`poc/_private/`, already gitignored);
-- the vendored Pyodide runtime and wheels (`poc/ext/dph_plus_poc/vendor/`, regenerable with
-  `poc/tools/vendor_payload.py`), virtualenvs, caches, and the built `.rbz`.
+- the PHPP-extracted CSVs and the captured client outputs (`pocs/01_sketchup-export/_private/`, already gitignored);
+- the vendored Pyodide runtime and wheels (`pocs/01_sketchup-export/ext/dph_plus_poc/vendor/`, regenerable with
+  `pocs/01_sketchup-export/tools/vendor_payload.py`), virtualenvs, caches, and the built `.rbz`.
 
 See [`DATA_REMOVED.md`](DATA_REMOVED.md) for the list. The one model that ships is the synthetic
-six-face `_misc_test_files/designph_test.skp`; the documents still reference the removed files by
+six-face `corpus/synthetic/designph_test.skp`; the documents still reference the removed files by
 name, and those references are correct for the source repo.
 
 ## Where to read
 
-Start with [`AGENTS.md`](AGENTS.md) (what this is, the hard rules, the corpus, the tooling), then:
+Start with [`AGENTS.md`](AGENTS.md) (what this is, the hard rules, the corpus, the tooling). The
+repo is organized as numbered POCs — `planning/NN_slug/` for plans and results,
+[`planning/.index.md`](planning/.index.md) as the master router, `pocs/NN_slug/` for code, and
+`00_Context/` as the knowledge base every POC shares. Then:
 
 | | |
 |---|---|
 | [`00_Context/CONSTRAINTS.md`](00_Context/CONSTRAINTS.md) | every hard limit, blocker, and method rule; what the real-model runs settled |
 | [`00_Context/DESIGNPH_DATA_MODEL.md`](00_Context/DESIGNPH_DATA_MODEL.md) | what designPH stores where, and the rules for reading it |
-| [`planning/POC/RESULTS/POC-5_results.md`](planning/POC/RESULTS/POC-5_results.md) | the closing retro: verdict, measured tables, the ranked "what v1 must do differently" list |
-| [`planning/POC/CONTRACT_extraction-json.md`](planning/POC/CONTRACT_extraction-json.md) | the Ruby to Python seam (frozen at v2) |
-| [`poc/`](poc/.index.md) | the extension, the translator, the tests, the tools; `cd poc && make ci` is the offline gate |
+| [`planning/01_sketchup-export/implementation/RESULTS/POC-5_results.md`](planning/01_sketchup-export/implementation/RESULTS/POC-5_results.md) | the closing retro: verdict, measured tables, the ranked "what v1 must do differently" list |
+| [`planning/01_sketchup-export/implementation/CONTRACT_extraction-json.md`](planning/01_sketchup-export/implementation/CONTRACT_extraction-json.md) | the Ruby to Python seam (frozen at v2) |
+| [`pocs/01_sketchup-export/`](pocs/01_sketchup-export/.index.md) | the extension, the translator, the tests, the tools; `cd pocs/01_sketchup-export && make ci` is the offline gate |
 | [`DESIGNPH-PLUS_PRD.md`](DESIGNPH-PLUS_PRD.md) | the original product requirements (superseded as a product thesis; still the reference for translation rules and legal posture) |
 
 ## Running it
 
-`cd poc && make ci` runs the offline gate: ruff, mypy, pytest (174 cases), the Ruby suites against a
+`cd pocs/01_sketchup-export && make ci` runs the offline gate: ruff, mypy, pytest (174 cases), the Ruby suites against a
 stubbed SketchUp API, the schema gate, and the translator in a headless Chromium 88 (the engine
-SketchUp 2022 embeds; `poc/tools/verify_in_chrome.py` explains how to fetch it). It needs
-`uv`, Python 3.11, Ruby 2.7+, and the vendored payload (`uv run poc/tools/vendor_payload.py`).
+SketchUp 2022 embeds; `pocs/01_sketchup-export/tools/verify_in_chrome.py` explains how to fetch it). It needs
+`uv`, Python 3.11, Ruby 2.7+, and the vendored payload (`uv run pocs/01_sketchup-export/tools/vendor_payload.py`).
 Installing into SketchUp 2022 (`make ed`) and exporting a real designPH model requires SketchUp,
 designPH, and a model you are licensed to read.
 
@@ -62,7 +65,7 @@ designPH, and a model you are licensed to read.
 
 Internal. Never distributed beyond the parties it is shared with. The extension vendors honeybee
 (AGPL-3.0); the licensing question is written up for counsel in
-`planning/RESULTS/PHASE-3_licence-question.md`. The reader never parses designPH's `.ppp` export
+`planning/01_sketchup-export/feasibility/RESULTS/PHASE-3_licence-question.md`. The reader never parses designPH's `.ppp` export
 and never writes into designPH's data (`AGENTS.md`, hard rules 1 and 2).
 
 BLDGTYP, LLC (Ed May, John Mitchell).

@@ -4,7 +4,7 @@
 # ⚠ Runs against a THIRD-PARTY re-host of Trimble's SDK; feasibility-only evidence. See sdk.py.
 # ⚠ Needs planning/spikes/headless/_private/ staged (gitignored client data, see its MANIFEST.md)
 #    and the framework unpacked at _private/sdk/. Neither is in the repo.
-# ⚠ H5 needs the POC's own interpreter: `cd poc && make venv` once, first.
+# ⚠ H5 needs the POC's own interpreter: `cd pocs/01_sketchup-export && make venv` once, first.
 #
 #    ./run_gates_b.sh
 #

@@ -4,7 +4,7 @@
 # ///
 """The recursive model walk every behavioural gate shares.
 
-Mirrors what `poc/ext/dph_plus_poc/collector.rb` does inside SketchUp, so the two can be compared
+Mirrors what `pocs/01_sketchup-export/ext/dph_plus_poc/collector.rb` does inside SketchUp, so the two can be compared
 directly rather than approximately:
 
 - **ids are path-qualified `persistent_id`s** — `kind_<ancestors...>_<own>` — so the whole path is

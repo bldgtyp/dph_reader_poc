@@ -51,7 +51,7 @@ CHROME = Path("/Applications/Google Chrome.app/Contents/MacOS/Google Chrome")
 #: `--headless=new` only exists from Chrome 109. An old build needs the original flag, which is how
 #: a Chromium 88 snapshot — the engine SketchUp 2022 actually embeds — can be driven here.
 LEGACY_HEADLESS_BELOW = 109
-DEFAULT_OUT = REPO / "planning" / "RESULTS" / "baselines"
+DEFAULT_OUT = REPO / "planning" / "01_sketchup-export" / "feasibility" / "RESULTS" / "baselines"
 
 #: Deliberately minimal. No `--allow-file-access-from-files`, no `--disable-web-security`: a run
 #: that needed those would prove nothing about SketchUp, which sets neither.

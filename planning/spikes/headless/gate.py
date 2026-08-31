@@ -2,7 +2,7 @@
 # requires-python = ">=3.11"
 # dependencies = []
 # ///
-"""The POC's version gate (`poc/ext/dph_plus_poc/gate.rb`), ported for the headless reader.
+"""The POC's version gate (`pocs/01_sketchup-export/ext/dph_plus_poc/gate.rb`), ported for the headless reader.
 
 The decision that stands between "a file arrived in a watched folder" and a translator: **is this a
 designPH generation this reader understands?** Pure functions over plain data, exactly as the Ruby

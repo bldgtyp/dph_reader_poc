@@ -6,7 +6,7 @@
 #
 # The question this file exists to answer: can Pyodide run inside SketchUp's
 # `HtmlDialog`? Desktop Chrome already answered the parts that are not about
-# SketchUp -- see `planning/RESULTS/PHASE-3_results.md`. Two of those answers
+# SketchUp -- see `planning/01_sketchup-export/feasibility/RESULTS/PHASE-3_results.md`. Two of those answers
 # shape everything below:
 #
 #   * over `file://`, stock Chromium blocks `fetch`, blocks `XMLHttpRequest`,

@@ -115,7 +115,7 @@ def main() -> int:
 
     baseline = json.loads(args.baseline.read_text(encoding="utf-8"))
     match_baseline = load_module(
-        args.repo_root / "poc" / "tools" / "check_extraction.py", "check_extraction"
+        args.repo_root / "pocs" / "01_sketchup-export" / "tools" / "check_extraction.py", "check_extraction"
     ).match_baseline
     models: dict[str, Any] = {}
     problems_total = 0
@@ -226,7 +226,7 @@ def main() -> int:
 
     passed = len(models) == len(UNDER_TEST) and not problems_total
     write_result(
-        args.out, {"gate": "poc/ext/dph_plus_poc/gate.rb, ported as gate.py", "models": models}
+        args.out, {"gate": "pocs/01_sketchup-export/ext/dph_plus_poc/gate.rb, ported as gate.py", "models": models}
     )
     refusals = sum(1 for row in models.values() if not row["post_walk"]["allow"])
     print(

@@ -29,8 +29,8 @@ per reference, and the middle ones are the finding:
 Usage
 -----
     uv run decode_designph_blobs.py MODEL.skp [MODEL.skp ...] \\
-        --md   planning/RESULTS/PHASE-1_assembly-resolution.md \\
-        --json planning/RESULTS/baselines/phase1_assemblies.json
+        --md   planning/01_sketchup-export/feasibility/RESULTS/PHASE-1_assembly-resolution.md \\
+        --json planning/01_sketchup-export/feasibility/RESULTS/baselines/phase1_assemblies.json
 """
 
 from __future__ import annotations

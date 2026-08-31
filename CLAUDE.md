@@ -42,17 +42,22 @@ these, check the file — all of it is measured, not guessed:
 
 ## Working style here
 
-- ▶ **The POC is COMPLETE (Ed, 2026-08-21) and this repo is now the research record for a future
-  V-0.** Picking it up cold: `planning/POC/RESULTS/POC-5_results.md` — the retro; its §4 is the
-  ranked "what v1 must do differently" list. `planning/POC/.index.md` carries the closed status
-  table and the V-0 routing. Everything else in this section is background to that.
-- ▶ **The active work is the HEADLESS phase** (`planning/HEADLESS/`, opened 2026-08-28) — headless
-  C-SDK reader spikes; start at its `.index.md`. Its spike code goes in `planning/spikes/headless/`,
-  client-data scratch in `planning/spikes/headless/_private/` (gitignored, `MANIFEST.md`).
-- **The POC was the previous active work** (`planning/POC/`, closed 2026-08-21). POC code belongs in `poc/`, is
+- ▶ **The repo is organized as numbered POCs (reorganized 2026-08-31): `planning/NN_slug/` for the
+  plans + results, `pocs/NN_slug/` for the code, `00_Context/` shared by all of them.**
+  `planning/.index.md` is the master router and status table; `planning/.instructions.md` carries
+  this folder's conventions.
+- ▶ **POC #1 is COMPLETE (Ed, 2026-08-21) and its record is the research base for a future V-0.**
+  Picking it up cold: `planning/01_sketchup-export/implementation/RESULTS/POC-5_results.md` — the
+  retro; its §4 is the ranked "what v1 must do differently" list.
+- ▶ **POC #2 (headless C-SDK reader, `planning/02_headless-reader/`) has Spikes A+B PASS; Spike C
+  (deployment) is open.** Its spike code is `planning/spikes/headless/`, client-data scratch in
+  `planning/spikes/headless/_private/` (gitignored, `MANIFEST.md`).
+- ▶ **POC #3 (`planning/03_load-from-phnav/`) is being scoped with Ed** — SketchUp *loading* data
+  *from* PH-Navigator. Stub only; scope with Ed before writing any spike plan.
+- **POC #1's code lives in `pocs/01_sketchup-export/`** (closed 2026-08-21), is
   **internal-only, and is never distributed** — the AGPL question
-  (`planning/RESULTS/PHASE-3_licence-question.md`) blocks *release*, not internal POC work (working
-  assumption, for counsel — `planning/POC/00_POC_OVERVIEW.md` §2.3). v1 remains blocked on that
+  (`planning/01_sketchup-export/feasibility/RESULTS/PHASE-3_licence-question.md`) blocks *release*, not internal POC work (working
+  assumption, for counsel — `planning/01_sketchup-export/implementation/00_POC_OVERVIEW.md` §2.3). v1 remains blocked on that
   answer. Exploratory throwaway code still belongs under `planning/spikes/`.
 - **`00_Context/` is the foundation layer, and it is load-bearing.** When you learn something durable
   about designPH, SketchUp, Pyodide or the honeybee stack, it goes there — not into a phase result

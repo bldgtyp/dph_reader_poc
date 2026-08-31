@@ -11,9 +11,9 @@ This is the *so what* document. [`SDK_RUNTIME.md`](SDK_RUNTIME.md) is the refere
 what it exposes, how to call it); this one answers the questions a decision needs: **is it viable,
 where does it break, and what did we find that we did not know to look for?**
 
-Evidence: `planning/HEADLESS/RESULTS/HEADLESS-A_results.md` (the eight gates),
+Evidence: `planning/02_headless-reader/RESULTS/HEADLESS-A_results.md` (the eight gates),
 `planning/spikes/headless/a7_capability_probe.py` (the capability sweep, 16 corpus files), and
-`planning/HEADLESS/RESULTS/HEADLESS-B_results.md` (the nine identity gates).
+`planning/02_headless-reader/RESULTS/HEADLESS-B_results.md` (the nine identity gates).
 
 ---
 

@@ -11,7 +11,7 @@ Downloads, verifies and unpacks everything the spike extension needs to run **of
     vendor/manifest.json       what was fetched, its sha256, and its size
 
 Everything is **pinned**. The versions are the ones Phase 2 audited and measured
-(`planning/RESULTS/PHASE-2_results.md` §2.5–§2.6); a spike that silently floats its payload cannot
+(`planning/01_sketchup-export/feasibility/RESULTS/PHASE-2_results.md` §2.5–§2.6); a spike that silently floats its payload cannot
 be compared against Phase 2's bundle budget. `--check` re-verifies an existing vendor tree without
 downloading, which is what the build script calls.
 

@@ -24,7 +24,7 @@ Two passes, because either alone is weak evidence:
 
 Usage:
     uv run planning/spikes/phase2/import_reachability.py \
-        --md planning/RESULTS/PHASE-2_import-reachability.md
+        --md planning/01_sketchup-export/feasibility/RESULTS/PHASE-2_import-reachability.md
 """
 
 from __future__ import annotations
@@ -42,7 +42,7 @@ from pathlib import Path
 
 #: Where `purity_audit.py` writes the closure these pins came from. Checked at startup so the two
 #: scripts cannot silently drift apart the next time the audit is re-run against newer releases.
-CLOSURE_JSON = Path(__file__).resolve().parents[2] / "RESULTS" / "baselines" / "phase2_closure.json"
+CLOSURE_JSON = Path(__file__).resolve().parents[2] / "01_sketchup-export" / "feasibility" / "RESULTS" / "baselines" / "phase2_closure.json"
 
 #: The Phase 2 closure, pinned to the versions the audit resolved. Deliberately explicit rather than
 #: read from `CLOSURE_JSON`: the probe's whole value is that it installs these and *nothing else*, so

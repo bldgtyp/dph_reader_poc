@@ -32,16 +32,16 @@ There is no sidecar file, no database, no hidden layer. The data lives in the `.
 | `~/Desktop/dph_plus_testing/designph_test~.skp` | `2.2.29` | 6 faces, clean auto-classified state |
 | `~/Desktop/dph_plus_testing/designph_test.skp` | `2.4.0 BETA` | Model-level keys only (saved before face assignment) |
 | Live JSON dumps from BT Attribute Inspector | 2.4.0 BETA session | Confirms in-memory values match on-disk values |
-| `_adephi_st_example_files/adelphi-designph.skp` | `2.1.15` | Primary corpus model; 1441 tagged faces; type instability (§6.4) |
+| `corpus/adelphi/adelphi-designph.skp` | `2.1.15` | Primary corpus model; 1441 tagged faces; type instability (§6.4) |
 | **Phase 0 baseline — all 14 corpus models** | `2.1.10` … `2.4.0 BETA` | §5.3.1 `tempZone` decode · §6.2 rename hypothesis refuted · `descName` (§5.2) |
-| `_adephi_st_example_files/adelphi-phpp.xlsm` | *(PHPP 10)* | PHI's own group labels — resolved groups 12–14 and 18 (§5.3) |
+| `corpus/adelphi/adelphi-phpp.xlsm` | *(PHPP 10)* | PHI's own group labels — resolved groups 12–14 and 18 (§5.3) |
 
 Plus the shipped data libraries under
 `~/Library/Application Support/SketchUp 2022/SketchUp/Plugins/designPH/data/`.
 
 The Phase 0 baseline covers all 14 `.skp` files in the corpus — the primary Adelphi model, the two
-`_misc_test_files` samples, and the 11 files under `~/Dropbox/bldgtyp/*/08_DesignPH/`. Full per-model
-key and value inventory: `planning/RESULTS/PHASE-0_corpus-baseline.md`; regenerate with
+`corpus/synthetic` samples, and the 11 files under `~/Dropbox/bldgtyp/*/08_DesignPH/`. Full per-model
+key and value inventory: `planning/01_sketchup-export/feasibility/RESULTS/PHASE-0_corpus-baseline.md`; regenerate with
 `uv run planning/spikes/phase0/corpus_baseline.py`.
 
 **Full key inventory** for the Wellington model — 29 distinct keys under `DesignPH_dict`,
@@ -133,7 +133,7 @@ that marks a face record. See §7.1. **Walking only faces loses them.**
 ### 5.0 ⚠ `face.area` is NET of glued window openings — and `face.loops` does not show them
 
 *(Established 2026-08-21 by a 16-of-16 exact match on Adelphi. Evidence:
-`poc/_private/fixtures/adelphi-designph_COPY.extraction.json` plus the translation report's own
+`pocs/01_sketchup-export/_private/fixtures/adelphi-designph_COPY.extraction.json` plus the translation report's own
 area cross-check.)*
 
 designPH windows are **glued** Dynamic Components. Where one is glued to a face, SketchUp's
@@ -238,7 +238,7 @@ and PHI's own label in the same row.
   a display colour for the user-defined slots. The earlier "**Open:** what group 14 is" is closed.
 
 The full group list, its temperature zones and the per-surface areas are extracted to
-`planning/RESULTS/phpp/phpp_areas_summary.csv`.
+`planning/01_sketchup-export/feasibility/RESULTS/phpp/phpp_areas_summary.csv`.
 
 ### 5.3.1 `tempZoneID` is derived from the area group — not independent data
 
@@ -276,7 +276,7 @@ below are unaffected. Full table with PHI's own labels: `phi-rules`
 
 **Evidence:** exact population arithmetic in five models — e.g. Bluff Reach `8`+`10`+`15` = 31+8+55 =
 94 = `A`:94, and `9`+`11`+`17` = 14+1+28 = 43 = `B`:43. Every model balances to the unit across 14
-distinct group values. See `planning/RESULTS/PHASE-0_results.md` Finding 1 for the full table.
+distinct group values. See `planning/01_sketchup-export/feasibility/RESULTS/PHASE-0_results.md` Finding 1 for the full table.
 
 ⚠ **Inferred from counts, not observed per-face.** The offline reader extracts attribute records
 without associating them to entities. Confirm per-face with the BT Attribute Inspector before relying
@@ -347,7 +347,7 @@ rename — they appear to be genuine derived caches throughout.
 
 ### 6.2 What the full corpus shows — the rename hypothesis fails
 
-Baselining all 14 corpus models (Phase 0 §0.3, `planning/RESULTS/PHASE-0_corpus-baseline.md`)
+Baselining all 14 corpus models (Phase 0 §0.3, `planning/01_sketchup-export/feasibility/RESULTS/PHASE-0_corpus-baseline.md`)
 contradicts §6.1. Non-nil records per key:
 
 | Model | Stamp | `areaGroupID` | `areaGroupAuto` | `tempZoneID` | `tempZoneAuto` | `assemblyID` | `assemblyIDAuto` |
@@ -424,8 +424,8 @@ envelope faces rather than assuming every face is meaningful.
 
 ### 6.5 The rule — a coalesce, not a precedence ✅
 
-*(Phase 1, `planning/RESULTS/PHASE-1_results.md` Findings 6 and 7. Evidence:
-`planning/RESULTS/PHASE-1_face-attribute-matrix.md`, all 14 corpus models, grouped **per face**
+*(Phase 1, `planning/01_sketchup-export/feasibility/RESULTS/PHASE-1_results.md` Findings 6 and 7. Evidence:
+`planning/01_sketchup-export/feasibility/RESULTS/PHASE-1_face-attribute-matrix.md`, all 14 corpus models, grouped **per face**
 rather than per record — the grouping Phase 0 lacked.)*
 
 Two facts, both measured face by face:
@@ -634,7 +634,7 @@ someone ran — 188 of them on one project. Either alone would be enough to iden
 
 ### 7.1 Resolving a face's `assemblyID` — four tiers, two namespaces ⚠
 
-*(Phase 1, `planning/RESULTS/PHASE-1_assembly-resolution.md`. Every reference in all 14 corpus
+*(Phase 1, `planning/01_sketchup-export/feasibility/RESULTS/PHASE-1_assembly-resolution.md`. Every reference in all 14 corpus
 models was checked against every table those models define.)*
 
 **`assemblyID` does not always name an assembly, and it is not always on a face.** There are two id
@@ -872,7 +872,7 @@ definition-name matching fails because users rename.
 ### 9.1 ✅ The definition's structure — settled live, 2026-08-21
 
 *(`DphWin.inspect_one("403U")` on `adelphi-designph_COPY`, definition
-`designPH_Window_Simple 1.2`. Raw dump in `planning/POC/RESULTS/POC-2_results.md`.)*
+`designPH_Window_Simple 1.2`. Raw dump in `planning/01_sketchup-export/implementation/RESULTS/POC-2_results.md`.)*
 
 ```
 definition "designPH_Window_Simple 1.2"
@@ -1114,7 +1114,7 @@ Everything above §12 was read by the **offline binary parser**, which sees the 
 union over live and deleted entities. This section re-reads the same corpus through the **SketchUp
 C SDK**, which sees only **live** state, on an **entity** basis, and adds two files the Phase 0
 baseline never had. Source: `planning/spikes/headless/a7_capability_probe.py` and the key census in
-`planning/HEADLESS/RESULTS/HEADLESS-A_results.md`.
+`planning/02_headless-reader/RESULTS/HEADLESS-A_results.md`.
 
 ⚠ Live-vs-historical shows up immediately: Wellington's model-level `designPH_version` reads
 **`2.2.29`** here, while §2 records it as carrying *both* `2.1.10` and `2.2.29`. Both are right —
