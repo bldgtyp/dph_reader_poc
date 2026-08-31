@@ -52,8 +52,9 @@ these, check the file — all of it is measured, not guessed:
 - ▶ **POC #2 (headless C-SDK reader, `planning/02_headless-reader/`) has Spikes A+B PASS; Spike C
   (deployment) is open.** Its spike code is `planning/spikes/headless/`, client-data scratch in
   `planning/spikes/headless/_private/` (gitignored, `MANIFEST.md`).
-- ▶ **POC #3 (`planning/03_load-from-phnav/`) is being scoped with Ed** — SketchUp *loading* data
-  *from* PH-Navigator. Stub only; scope with Ed before writing any spike plan.
+- ▶ **POC #3 (`planning/03_library-import/`) is scoped, spikes not started** — can we WRITE
+  designPH library data (assemblies, window types) at model level, sourced from PH-Navigator?
+  Start at its `.index.md`; note it carries a scoped amendment to hard rule 2.
 - **POC #1's code lives in `pocs/01_sketchup-export/`** (closed 2026-08-21), is
   **internal-only, and is never distributed** — the AGPL question
   (`planning/01_sketchup-export/feasibility/RESULTS/PHASE-3_licence-question.md`) blocks *release*, not internal POC work (working

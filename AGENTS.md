@@ -328,7 +328,7 @@ planning/                     ★ one folder per POC — its .index.md is the ma
     feasibility/              the de-risking spike plan: PHASE-0…5 + RESULTS/
     implementation/           the POC build: POC-1…5, the frozen contract, RESULTS/ (incl. ★ the retro)
   02_headless-reader/         ✅ POC #2 — the headless C-SDK reader (Spikes A+B PASS; C open)
-  03_load-from-phnav/         ▶ POC #3 — SketchUp loads FROM PH-Navigator (stub, being scoped)
+  03_library-import/          ▶ POC #3 — write assemblies/window types INTO designPH models (scoped)
   spikes/                     throwaway spike code, kept regardless of outcome; its .index.md
                               maps subfolders to POCs (headless/_private/ is gitignored client data)
 pocs/                         ★ POC code, numbered to match planning/ — internal-only, never distributed
