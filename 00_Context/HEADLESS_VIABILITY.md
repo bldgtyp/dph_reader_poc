@@ -241,6 +241,13 @@ also what made a concurrency check report a mismatch on **two plain parallel pro
 nothing concurrent was happening at all — *when a check fires on 100 % of your data, suspect the
 check.*
 
+⚠ **And a second exclusion joined it (POC #3 L-B, 2026-08-31): `tracker_data`.** designPH's save
+re-dumps that table even when untouched — Ruby `Time` payloads re-serialised representation-only
+(187 rows moved on Linde with zero value changes) — and every calc event (launch and re-initialise
+included) appends a row. The contract-v2 capture deliberately omits `tracker_data`, so *capture*
+hashing is unaffected; but anything hashing the `.skp` file itself, or a full model-table dump,
+must canonicalise or exclude it (`DESIGNPH_DATA_MODEL.md` §14.7).
+
 ★ The good half is the one that matters: **the path-qualified persistent id is a real, file-stable,
 cross-session identity**, reproducible byte-for-byte from a headless process. That is the foundation
 a record-keeping product needs, and it comes from the file rather than from the reader.

@@ -52,13 +52,18 @@ these, check the file — all of it is measured, not guessed:
 - ▶ **POC #2 (headless C-SDK reader, `planning/02_headless-reader/`) has Spikes A+B PASS; Spike C
   (deployment) is open.** Its spike code is `planning/spikes/headless/`, client-data scratch in
   `planning/spikes/headless/_private/` (gitignored, `MANIFEST.md`).
-- ▶ **POC #3 (`planning/03_library-import/`): Spike L-A is a full PASS (2026-08-31)** — designPH
-  accepts model-level library writes end to end (listed, assigned, computed exactly, save-stable,
-  in the PHPP export; all nine open questions answered). **The durable write-side facts live in
-  `00_Context/DESIGNPH_DATA_MODEL.md` §14** — read that before writing anything into a designPH
-  model. L-B (the PHN → designPH mapping contract) is next; note the POC carries a scoped
-  amendment to hard rule 2, and hard rule 1 was amended 2026-08-31 (`00_Context/PPP_EXPORT.md`
-  §1 — validation reads of our own exports are permitted).
+- ▶ **POC #3 (`planning/03_library-import/`): Spikes L-A AND L-B are both full PASSES
+  (2026-08-31, one day)** — designPH accepts model-level library writes end to end (L-A), and
+  **real PH-Navigator assemblies/window types reproduce their intended U-values + Error %
+  EXACTLY in designPH's own calculator** (L-B: 8/8 incl. multi-section 3-path, two models, both
+  base64 styles; export validated; the `phn_id` extra-column update key measured viable; the
+  export consumes `glazingtype`, not `glazingtypeid`). **The durable write-side facts live in
+  `00_Context/DESIGNPH_DATA_MODEL.md` §14 + §14.7, and the PHN→designPH mapping is FROZEN in
+  `planning/03_library-import/CONTRACT_phn-library.md` (v1)** — read those before writing
+  anything into a designPH model or building an importer. ▶ L-C (transport & product shape,
+  one-page sketch) is next; the POC carries a scoped amendment to hard rule 2, and hard rule 1
+  was amended 2026-08-31 (`00_Context/PPP_EXPORT.md` §1 — validation reads of our own exports
+  are permitted; ⚠ the `.ppp` is UTF-16LE).
 - **POC #1's code lives in `pocs/01_sketchup-export/`** (closed 2026-08-21), is
   **internal-only, and is never distributed** — the AGPL question
   (`planning/01_sketchup-export/feasibility/RESULTS/PHASE-3_licence-question.md`) blocks *release*, not internal POC work (working

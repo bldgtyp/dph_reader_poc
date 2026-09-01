@@ -90,8 +90,11 @@ def diff_tables(key: str, before: dict[str, Any], after: dict[str, Any]) -> list
         elif a is None:
             out.append(f"{key}[{rid}]: REMOVED {b}")
         else:
+            # rows may differ in WIDTH (the L-B probe appends a column) — guard every access
             cols = [
-                f"{tokens[i] if i < len(tokens) else i}: {b[i]!r} -> {a[i]!r}"
+                f"{tokens[i] if i < len(tokens) else i}: "
+                f"{(b[i] if i < len(b) else '<absent>')!r} -> "
+                f"{(a[i] if i < len(a) else '<absent>')!r}"
                 for i in range(max(len(b), len(a)))
                 if (b[i] if i < len(b) else None) != (a[i] if i < len(a) else None)
             ]

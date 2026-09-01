@@ -5,7 +5,12 @@ DATE:    2026-08-31
 STATUS:  ⭐ Spike L-A PASS (2026-08-31, scoped→run→graded in one day) — designPH accepts
          foreign model-level library writes end to end; O-1…O-9 all answered
          (RESULTS/LIBRARY-A_results.md). Durable facts: 00_Context/DESIGNPH_DATA_MODEL.md §14.
-         ▶ Spike L-B is next — its brief below is revised with what L-A learned.
+         ⭐ Spike L-B PASS (2026-08-31, scoped→built→run→graded the same evening): real Linde
+         PHN data (8 assemblies incl. multi-section, 9 frames, 2 glazings) reproduces intended
+         U + Error % EXACTLY in designPH's calculator, on two models and both base64 styles;
+         update key (phn_id column) measured viable; CONTRACT_phn-library.md FROZEN v1
+         (RESULTS/LIBRARY-B_results.md; durable facts §14.7). ▶ L-C (transport & product
+         shape, sketch only) is next.
 AUTHOR:  Ed May / Claude
 ISSUE:   none — local-only research workflow (planning/.instructions.md)
 ```
@@ -126,7 +131,9 @@ All of this is **observed and measured**, not inferred, unless marked open:
 
 > ⭐ **Met in full for Spike L-A, 2026-08-31 — gate PASS** (item-by-item grading:
 > [`RESULTS/LIBRARY-A_results.md`](RESULTS/LIBRARY-A_results.md) §3). The framed/multi-section
-> U-value leg of item 1 was deliberately deferred to L-B's regression bar.
+> U-value leg of item 1 was deliberately deferred to L-B's regression bar — **and met there the
+> same day**: 8/8 real PHN assemblies exact *including Error %*
+> ([`RESULTS/LIBRARY-B_results.md`](RESULTS/LIBRARY-B_results.md) §2.1).
 
 The POC passes when, on a **copy** of a corpus model:
 
@@ -214,7 +221,7 @@ option lists must be written too") / FAIL-with-mechanism. Decides whether L-B ex
 > `rehearse.py` (the offline harness that caught two real defects before any SketchUp session),
 > `dump_model_tables.py` (the SDK live-state before/after read, kept for L-B).
 
-### Spike L-B — the mapping *(unblocked 2026-08-31; brief revised with L-A's findings)*
+### Spike L-B — the mapping *(⭐ RUN AND PASSED 2026-08-31, the same evening — see the blockquote at the end of this section)*
 
 The contract from a **PH-Navigator assembly / window type** to the designPH tables. L-A settled
 the *route*: PHN assemblies carry layers, so they write the **user-calculated** library —
@@ -235,7 +242,8 @@ user-defined library, a different product surface; §14.5). The contract must sp
   foreign extra column survives) and define collision behaviour on a slot-exhausted table.
 - **The `glazingtype`/`glazingtypeid` split** *(new)*: designPH's own UI left the pair split on
   one window and the export still resolved our glazing; L-B settles which key each consumer
-  reads before the contract claims either.
+  reads before the contract claims either. *(✅ Settled: the export consumes `glazingtype` —
+  discriminated by exporting from a split state; n=2. Contract §9 B-3.)*
 - **User-facing rule**: imports are invisible to an open dialog — the contract ships the
   "re-initialise designPH after import" instruction (O-7).
 
@@ -246,7 +254,19 @@ on SketchUp 2022) **and** the PPP export carries them (needle-validated under am
 rule 1, placement by eye in PHPP). The contract doc is the deliverable, in the style of
 `CONTRACT_extraction-json.md` — frozen before any importer is built.
 
-### Spike L-C — transport and product shape *(sketch only; options re-weighted by L-A)*
+> ⭐ **RUN AND PASSED, 2026-08-31 — scoped, built, rehearsed, run and graded the same evening.**
+> Source data: the real **Linde Home PHN project** (8 assemblies, 6 framed/multi-section — two
+> needing all three PHPP paths; 9 frame tuples; 2 glazings), written into copies of Bluff Reach
+> *and* Linde. designPH's calculator: **8/8 exact, Error % to the digit**; export
+> needle-validated + PHPP by eye; wrapped base64 style survives (B-5); the `phn_id`
+> extra-column probe passed all three counts and becomes the update key (B-2); the export
+> consumes `glazingtype` (B-3). **[`CONTRACT_phn-library.md`](CONTRACT_phn-library.md) is
+> FROZEN v1**; results: [`RESULTS/LIBRARY-B_results.md`](RESULTS/LIBRARY-B_results.md);
+> durable facts: `00_Context/DESIGNPH_DATA_MODEL.md` §14.7. Spike assets: `map_phn.py` (the
+> executable contract), `write_library_b.rb` (payload-driven paste-in), `rehearse_b.py`
+> (byte + arithmetic rehearsal, 4/4).
+
+### Spike L-C — transport and product shape *(▶ NEXT — sketch only; options re-weighted by L-A, seeded by L-B's frozen contract + `write_library_b.rb`)*
 
 Simplest viable is confirmed viable: **PHN → JSON file → a paste-in / menu-item write inside
 SketchUp** — `write_library.rb` is the working seed, any write timing is acceptable (O-7), and
@@ -308,7 +328,10 @@ re-initialise is the only post-step. Options to weigh, not build:
   writing the **user-defined** table when it means user-calculated data, §14.5.)*
 - **The percent trap** (§7.2) and **DC formula staleness** (§9.2) — both already documented;
   the mapping contract cites them rather than rediscovering them. *(→ carried to L-B, joined by
-  the base64-style and layer-schema disciplines and the `glazingtypeid` split.)*
+  the base64-style and layer-schema disciplines and the `glazingtypeid` split. ✅ All resolved
+  there: percentages written as percentages and verified by designPH's own dialog display
+  (78.12/9.38/12.50); styles and schemas preserved through designPH's save on both models; the
+  split settled — contract §9.)*
 - **n=1 evidence** — every acceptance claim gets checked on more than one model and more than
   one designPH version before it is written down as a rule. Adelphi alone proves nothing.
   *(Two models — 2.2.24-written and 2.1.15-written — and two designPH versions — 2.4.0 BETA and

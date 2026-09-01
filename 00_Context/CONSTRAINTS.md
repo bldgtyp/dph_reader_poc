@@ -139,7 +139,10 @@ Writing model-level library data **works, end to end** — the constraints are a
 | 🟠 | **The open dialog is a stale view** — a live write shows only after "Launch designPH or re-initialise model" (or model reopen). It is never a stale *writer*: foreign writes survive designPH's save, which touches exactly one field (`designPH_version` restamp) | §14.3 |
 | 🟠 | **designPH 2.4.0 BETA's analysis/export is broken on SketchUp 2022** (`UI.set_clipboard_data` is SU2023+). Export via stable 2.2.29 (Beta-GUI disabled) | [`DESIGNPH.md`](DESIGNPH.md) |
 | 🔵 | `assemblies_ud` (user-defined, CSV-seeded) and `assemblies_calc` (+layers, user-calculated) are **two coexisting libraries with separate id namespaces** — an importer picks one route and says so | §14.5 |
-| 🔵 | The `.ppp` may be needle-read to validate **our own** exports — hard rule 1 as amended 2026-08-31; extraction of designPH-computed data stays forbidden | [`PPP_EXPORT.md`](PPP_EXPORT.md) §1 |
+| 🔵 | The `.ppp` may be needle-read to validate **our own** exports — hard rule 1 as amended 2026-08-31; extraction of designPH-computed data stays forbidden. ⚠ It is **UTF-16LE text**: a UTF-8 needle scan returns a clean false zero | [`PPP_EXPORT.md`](PPP_EXPORT.md) §1 |
+| 🔵 | *(L-B, 2026-08-31)* The 3-path calculator reproduces foreign multi-section writes **exactly** (8/8 real PHN assemblies, Error % to the digit); layer tables are 8-row pre-allocated (>8 layers unrepresentable); an appended foreign column (`phn_id`) is tolerated, save-preserved, and export-inert — the measured basis for a re-import update key | §14.7; `planning/03_library-import/CONTRACT_phn-library.md` |
+| 🔴 | **The PPP export consumes the DC's `glazingtype`, not `glazingtypeid`** (n=2, both 2.2.29) — and designPH's own UI can leave the pair split. Never treat the pair as coherent; never write either | §14.6, §14.7 |
+| 🟠 | **A watcher hashing captures must exclude/canonicalise `tracker_data` too** — designPH's save re-dumps it representation-only (187 rows moved with zero value change), and every calc event (launch/re-init included) appends a row; analysis also auto-names classified faces (`desc_name`) | §14.7 |
 
 ## 5. The honeybee stack
 
@@ -359,6 +362,11 @@ the re-capture, it does not replace it.
 - **When the vendor's own UI can answer a question about the vendor's data, ask it.** designPH's
   U-/R-value calculator settled in one screenshot what two rounds of derivation had got wrong. That
   is a cheap Ed round-trip against an expensive analysis, and the ratio is not close.
+- **Grade against the sharpest figure the vendor displays, not the headline.** designPH shows U to
+  3 decimals but **Error %** to 2 — and Error % is the full ISO 6946 spread, so matching it to the
+  digit on 8/8 assemblies (L-B) certified the whole mean-of-limits computation where the rounded U
+  alone could not distinguish 0.0730 from 0.0734. A derived figure often carries more verification
+  power than the primary one.
 - ⚠ **A guard built on an untrustworthy value fails in both directions.** The copies-only check read
   `model.path`: matching this machine's `~/Dropbox` let a stale foreign path through, and widening it
   to `/Dropbox/` for any user then refused a legitimate copy. **Ask a positive question — *is this
@@ -366,7 +374,11 @@ the re-capture, it does not replace it.
   does not.
 - **A negative result from the wrong container is not a negative result.** Searching a `.skp` for a
   string it definitely contains returned nothing, because the `.skp` is a **zip** and the data is in
-  `model.dat` inside it. The tool that reads these files already knew that.
+  `model.dat` inside it. The tool that reads these files already knew that. ⚠ **It fired again on
+  L-B, one layer down — the wrong *encoding***: a UTF-8 needle scan of a `.ppp` returned a clean
+  zero on 24 strings the file certainly contained, because the `.ppp` is **UTF-16LE** — a fact
+  already written in `PPP_EXPORT.md`. Before trusting any zero from a scan, read the format doc
+  that already exists for the thing being scanned.
 - ⚠ **When a comparison fails on 100 % of your data, suspect the comparison — and read the shape of
   the failure before reading the failure.** POC-4's cross-host check reported 5 of 5 fixtures
   differing, twice, for two different reasons, and the *sizes* diagnosed both. First the CPython leg

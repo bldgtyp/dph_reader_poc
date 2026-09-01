@@ -160,6 +160,13 @@ motive is still a motive, and §2.4(a) does not care how much of the file you wa
   Precedent for the shape such a read takes: decode UTF-16LE, search literal needles, print only
   the matching lines — no structural interpretation
   (`planning/03_library-import/RESULTS/LIBRARY-A_results.md` §2.5).
+- **Spike L-B (same day)** ran the second and third such reads (the gate export and the
+  update-key-probe export), same tier-1 shape. Two observations worth keeping: **the UTF-16LE
+  fact bites** — a UTF-8 needle scan returns a clean false zero on strings the file certainly
+  contains — and window rows reference libraries in a compound **`NNud-<name>`** form while
+  library listings are bare names, which is what lets a verbatim needle distinguish "listed"
+  from "assigned" without any structural reading
+  (`planning/03_library-import/RESULTS/LIBRARY-B_results.md` §2.3, §2c).
 - **Phase 5** may seek written authorisation under §2.4(d) — and should also put the amended
   tier-1/2 interpretation to PHI for confirmation (LI-1/LI-2).
 

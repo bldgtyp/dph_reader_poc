@@ -1087,8 +1087,11 @@ Two supported routes and one unsupported one.
    on disk explains where the numbering starts. Cosmetic unless a model ever uses it for an assembly.
 4. **3.0 schema** — everything here is 2.x. Unknown whether 3.0 migrates, renames, or breaks.
    Phase 4.
-5. **Export path** — we never examined what `designPH_data_pppwrite_*` actually emits. If we ever want
-   to write PHPP directly, that is the thing to characterise next.
+5. **Export path** — we never examined what `designPH_data_pppwrite_*` actually emits (the code
+   path remains uncharacterised). *(Narrowed by POC #3's validation reads, 2026-08-31: the export
+   is UTF-16LE text (`PPP_EXPORT.md`), window rows reference libraries in a compound
+   `NNud-<name>` form while library listings are bare names, the DC key consumed for glazing is
+   `glazingtype` not `glazingtypeid`, and a foreign extra table column is export-inert — §14.7.)*
 
 **Closed by Phase 1's live runs (2026-08-19):**
 
@@ -1332,8 +1335,9 @@ user-calculated for PHN assemblies, which carry layers — and say so.
 - ⚠ **designPH's own window UI can split the `frametype`/`frametypeid`-style pairs**: after a
   dropdown assignment, one saved window carried `glazingtype = 02ud` with
   `glazingtypeid = 01ud` (the frame pair updated consistently). The subsequent 2.2.29 export
-  referenced `02ud-ZZ-LIBIMPORT Glazing`, and PHPP showed the intended assignment — but which
-  key each consumer reads is now an explicit L-B question. Do not assume the pair is coherent.
+  referenced `02ud-ZZ-LIBIMPORT Glazing`, and PHPP showed the intended assignment. Do not
+  assume the pair is coherent. *(✅ Which key the export reads was settled by L-B the same day —
+  it is `glazingtype`; §14.7.)*
 - ⚠ **designPH 2.4.0 BETA's analysis/export path requires SketchUp ≥ 2023**: "Run analysis"
   calls `UI.set_clipboard_data` (SU2023+ API) and dies with `NoMethodError` on SketchUp 2022;
   its selection observers also throw `DesignPH::UI::HighlightOverlay` NameErrors. Reads and
@@ -1342,3 +1346,32 @@ user-calculated for PHN assemblies, which carry layers — and say so.
   layer displays as "0.0") while the table stores **mm**; the computation uses the stored value.
 - designPH applies frame widths to window DCs in **inches** (0.115 m → 4.5276) and `o_reveal`
   in cm — §8.5's unit split, seen from the write side.
+
+### 14.7 ⭐ Spike L-B additions — real PHN data at scale, measured 2026-08-31
+
+*(Full evidence: `planning/03_library-import/RESULTS/LIBRARY-B_results.md`; the mapping rules
+live in the frozen `planning/03_library-import/CONTRACT_phn-library.md`. All on stable 2.2.29,
+two models — Bluff Reach strict-base64 and Linde wrapped — one SketchUp/machine.)*
+
+- ⭐ **The multi-section calculator accepts foreign 3-path writes and reproduces ISO 6946
+  exactly**: 8/8 real PHN assemblies (6 framed, incl. two needing all three PHPP paths) showed
+  the intended U at display precision **and the Error % to the exact 2 decimals** — the §7.2
+  method, now verified in the *write* direction too.
+- ⭐ **designPH TOLERATES a foreign extra column** on `assemblies_calc`: a `phn_id` token +
+  per-row cell is read (lists/computes/exports normally), **survives its save byte-intact**,
+  and leaks nowhere into the `.ppp`. This is what makes a durable re-import update key possible
+  (contract §5). Untested on `frames_ud`/`glazing_ud`.
+- ✅ **The PPP export consumes the DC's `glazingtype`, not `glazingtypeid`** — discriminated by
+  a naturally split pair on an assigned window (n=2 with §14.6's L-A observation, both 2.2.29).
+  Window references in the `.ppp` take the compound `NNud-<name>` form; library listings are
+  bare names.
+- **Layer tables are 8-row pre-allocated with integer row ids 1…8** (blank rows padded) — >8
+  layers per assembly is unrepresentable; `frames_ud` widths are stored in **metres** (the DC
+  copy designPH derives is inches, §8.5).
+- ⚠ **Running an analysis writes entity data designPH's save alone does not**: `desc_name`
+  auto-names (`Wall_043_N`…) onto classified faces (54 on Bluff Reach), plus an appended
+  `tracker_data` row per calc event — launch/re-initialise included, not only full analyses.
+- ⚠ **designPH's save re-dumps `tracker_data` even when untouched**, re-serialising Ruby `Time`
+  payloads representation-only (same instants, richer zone encoding — 187 rows moved on Linde
+  with zero value changes). **A change-detecting watcher (pholio) must canonicalise or exclude
+  `tracker_data` before hashing a capture**, alongside the process-scoped `entity_id`.
