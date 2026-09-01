@@ -39,6 +39,40 @@ these, check the file — all of it is measured, not guessed:
 | What does honeybee/honeybee-ph/PHX require, and what breaks? | `HONEYBEE_STACK.md` |
 | What shape is the data at each hop? | `DATA_CONTRACTS.md` |
 | Can we read the `.ppp`? | `PPP_EXPORT.md` — no, and the reasoning is recorded so it stays decided |
+| How do I ask the *live* SketchUp model a question? | `CLAUDE_BRIDGE.md` — the eval bridge, below |
+
+## Live SketchUp access — Claude Bridge
+
+**Installed 2026-09-01, source-reviewed:** the [Claude Bridge](https://github.com/lairdubois/lairdubois-claude-bridge-sketchup-extension)
+extension (Boris Beaulant, MIT) runs an eval server on `127.0.0.1:7857` inside SketchUp 2022.
+POST Ruby, get JSON back — the value of the script's last expression. This replaces the
+"write a staged script → Ed runs it → paste output back" loop for *novel live-model questions*,
+and it is how POC #3 L-C ("Library Sync") development iterates against a live designPH model.
+Full record + payload conventions: **`00_Context/CLAUDE_BRIDGE.md`**.
+
+```bash
+curl -s -H 'X-Claude-Bridge: 1' http://127.0.0.1:7857/ping        # always first: is it up, which model
+curl -s -X POST -H 'X-Claude-Bridge: 1' --data-binary @script.rb http://127.0.0.1:7857/eval
+```
+
+The rules, all measured or inherited from the hard rules:
+
+- **Ed starts/stops it** (toolbar button; checked = running). If `/ping` refuses, ask — never try
+  to start it yourself, and never ask him to leave it running unattended (it is an eval server).
+- ⛔ **Never `model.save` / `save_as` / `save_copy` in an eval.** Open **copies** only (hard rule 3).
+- **Reads use the non-creating form** — `entity.attribute_dictionary('DesignPH_dict')`, no second
+  arg (hard rule 2). Writes only under the POC #3 frozen contract, in scratch models, inside
+  `model.start_operation(..., true)` / `commit_operation`.
+- ⚠ **A native API crash in an eval kills SketchUp itself** — in-process, unrescuable, unsaved work
+  lost; the client sees curl exit 52 then connection refused, which reads like "the bridge stopped".
+  Measured on day one (suspect: `Sketchup::Text#attached_to`, SU2022). So: against a real project
+  model, use only API calls already proven in `bt_inspector` / the POC collector; first-try
+  anything new in a throwaway model.
+- **Everything runs on the main thread** — a slow eval freezes the UI. Keep evals short, walk
+  definitions never placements, return one structured JSON-able hash per eval (`Length` → `.to_f`),
+  and remember the binding is fresh per request: no locals persist between evals.
+- A leader-Text note's `t.point` **is** the snapped target vertex (measured: 0.0 mm) — Ed can point
+  at geometry with the Text tool and the note + target read out safely, no `attached_to` needed.
 
 ## Working style here
 
@@ -60,8 +94,13 @@ these, check the file — all of it is measured, not guessed:
   export consumes `glazingtype`, not `glazingtypeid`). **The durable write-side facts live in
   `00_Context/DESIGNPH_DATA_MODEL.md` §14 + §14.7, and the PHN→designPH mapping is FROZEN in
   `planning/03_library-import/CONTRACT_phn-library.md` (v1)** — read those before writing
-  anything into a designPH model or building an importer. ▶ L-C (transport & product shape,
-  one-page sketch) is next; the POC carries a scoped amendment to hard rule 2, and hard rule 1
+  anything into a designPH model or building an importer. ▶ L-C is next, reshaped 2026-08-31
+  (Ed): scope the v-0 **"Library Sync"** product — a pull-based SketchUp extension consuming
+  PHN (PHN stays web-only; pholio stays a separate product; no honeybee inside → no AGPL
+  exposure; decision + trajectory in the POC overview §4). **POC #4
+  (`planning/04_hbjson-to-skp/`) is scoped but NOT started** — HBJSON → a *fresh* `.skp`,
+  never surgery on an existing model, deferred behind L-C by the sequencing rule. The POC
+  carries a scoped amendment to hard rule 2, and hard rule 1
   was amended 2026-08-31 (`00_Context/PPP_EXPORT.md` §1 — validation reads of our own exports
   are permitted; ⚠ the `.ppp` is UTF-16LE).
 - **POC #1's code lives in `pocs/01_sketchup-export/`** (closed 2026-08-21), is
@@ -334,6 +373,13 @@ these, check the file — all of it is measured, not guessed:
   definition once is both the correct *entity* basis and ~1000x faster. Where world coordinates are
   genuinely needed, prune the placement walk to subtrees containing tagged geometry (~0.3% of the
   model) — prune the traversal, never the answer.
+- **A supported Ruby API can still segfault, and in-process that means SketchUp dies.** An
+  unsupported method raises a clean `NoMethodError`; a native bug in a *documented* method killed
+  SketchUp 2022 outright on the Claude Bridge's first day (suspect `Sketchup::Text#attached_to`,
+  unisolated — `leader_type` and `InstancePath` reads were first-used in the same eval). The two
+  failure classes need opposite handling: version gaps fail loud and safe; native bugs fail fatal
+  with no Ruby-level symptom. Treat "documented" as no evidence of "won't crash", and exercise new
+  API surface in a throwaway model before pointing it at real work.
 - SketchUp Ruby is 2.7. Endless-method syntax parses fine in your head and fails on load.
 - macOS `strings(1)` has no `-e` flag; use Python for UTF-16 extraction.
 - `attribute_dictionaries` returns `nil`, not an empty collection, when an entity has none.

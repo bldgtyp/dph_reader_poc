@@ -177,7 +177,7 @@ Writing model-level library data **works, end to end** — the constraints are a
 | 🔵 | **No shading in v1**, and the output must carry an explicit `shading: not-computed` marker | PRD §7.2 |
 | 🔵 | **Shading geometry is out too** — no heuristic separates context from clutter; v1 will ask which SketchUp tags are shading | PRD §7.2 |
 | 🔵 | **One non-solid Room**, by design. No watertight repair | PRD §8.1 |
-| 🔵 | **No writing to PHPP**, no mechanical data, no multi-zone program, no model writing | PRD §5 |
+| 🔵 | **No writing to PHPP** from the plugin, no multi-zone program. *(Amended 2026-09-01: "no model writing" is superseded — Import writes model-**level** library tables under the frozen contract (POC #3); Build will write only `DesignPHPlus_dict`; entity-level `DesignPH_dict` stays read-only forever — hard rule 2. "No mechanical data" is now a v-0/v-1 statement, not a product one: authoring it is affordance B)* | PRD §5, §2 |
 | 🔵 | **Report, don't guess** — every untranslatable entity named in a report | AGENTS.md |
 
 ## 7. The unsolved design problems

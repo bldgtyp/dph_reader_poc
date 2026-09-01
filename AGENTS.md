@@ -7,9 +7,15 @@ there. Keep this file tool-neutral.
 
 ## What this project is
 
-**DesignPH-PLUS** — a planned free, open-source **SketchUp extension** that reads a designPH model and
-writes valid, standard **HBJSON**, opening Passive House envelope data to viewers, QA tools,
-reporting, certifiers, and downstream automation.
+**DesignPH-PLUS** — a planned **SketchUp extension** for designPH users, a commercial pairing
+with PH-Navigator (working model: paid extension + paid PHN subscription; revenue split OPEN —
+PRD §12, superseding the original free/open-source thesis).
+*(Reframed 2026-09-01 — `DESIGNPH-PLUS_PRD.md` Draft v2, §2)*: four affordances on one plugin —
+**Import** (pull assemblies/window types from PH-Navigator into the model; the v-0 product),
+**Build** (author the data designPH is missing, in `DesignPHPlus_dict`), **Export** (the
+original thesis: write the model as valid, standard **HBJSON** for viewers, QA, reporting,
+certifiers, and downstream automation), and **Notes** (research: a spatial CPHC ↔ certifier
+review conversation pinned to the geometry).
 
 **Current status: ✅ the POC is COMPLETE (Ed closed it 2026-08-21), and this repo is now the
 background-research record for a future V-0 of a real plugin.** All five POC phases closed PASS;
@@ -335,7 +341,10 @@ planning/                     ★ one folder per POC — its .index.md is the ma
   03_library-import/          ▶ POC #3 — write assemblies/window types INTO designPH models
                               (⭐ Spikes L-A + L-B both PASS 2026-08-31; PHN→designPH contract
                               FROZEN v1 — see 00_Context/DESIGNPH_DATA_MODEL.md §14/§14.7 and
-                              planning/03_library-import/CONTRACT_phn-library.md; ▶ L-C next)
+                              planning/03_library-import/CONTRACT_phn-library.md; ▶ L-C: scope
+                              the v-0 "Library Sync" product — pull-based SU extension consuming PHN)
+  04_hbjson-to-skp/           ▶ POC #4 — HBJSON → a FRESH designPH-ready .skp (scoped 2026-08-31,
+                              not started; deferred behind POC #3's v-0; never edits an existing model)
   spikes/                     throwaway spike code, kept regardless of outcome; its .index.md
                               maps subfolders to POCs (headless/_private/ is gitignored client data)
 pocs/                         ★ POC code, numbered to match planning/ — internal-only, never distributed

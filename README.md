@@ -50,7 +50,7 @@ repo is organized as numbered POCs — `planning/NN_slug/` for plans and results
 | [`planning/01_sketchup-export/implementation/RESULTS/POC-5_results.md`](planning/01_sketchup-export/implementation/RESULTS/POC-5_results.md) | the closing retro: verdict, measured tables, the ranked "what v1 must do differently" list |
 | [`planning/01_sketchup-export/implementation/CONTRACT_extraction-json.md`](planning/01_sketchup-export/implementation/CONTRACT_extraction-json.md) | the Ruby to Python seam (frozen at v2) |
 | [`pocs/01_sketchup-export/`](pocs/01_sketchup-export/.index.md) | the extension, the translator, the tests, the tools; `cd pocs/01_sketchup-export && make ci` is the offline gate |
-| [`DESIGNPH-PLUS_PRD.md`](DESIGNPH-PLUS_PRD.md) | the original product requirements (superseded as a product thesis; still the reference for translation rules and legal posture) |
+| [`DESIGNPH-PLUS_PRD.md`](DESIGNPH-PLUS_PRD.md) | the product requirements — Draft v2 (2026-09-01), reframed around four affordances: Import (PHN library sync, the v-0), Build, Export, and Notes (research) |
 
 ## Running it
 

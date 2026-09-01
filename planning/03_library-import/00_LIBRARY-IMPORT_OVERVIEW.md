@@ -9,8 +9,9 @@ STATUS:  ⭐ Spike L-A PASS (2026-08-31, scoped→run→graded in one day) — d
          PHN data (8 assemblies incl. multi-section, 9 frames, 2 glazings) reproduces intended
          U + Error % EXACTLY in designPH's calculator, on two models and both base64 styles;
          update key (phn_id column) measured viable; CONTRACT_phn-library.md FROZEN v1
-         (RESULTS/LIBRARY-B_results.md; durable facts §14.7). ▶ L-C (transport & product
-         shape, sketch only) is next.
+         (RESULTS/LIBRARY-B_results.md; durable facts §14.7). ▶ L-C reshaped 2026-08-31
+         (product-shape discussion, Ed): scope the v-0 "Library Sync" product — a pull-based
+         SketchUp extension consuming PHN. Decision + boundaries: §4 L-C.
 AUTHOR:  Ed May / Claude
 ISSUE:   none — local-only research workflow (planning/.instructions.md)
 ```
@@ -266,26 +267,73 @@ rule 1, placement by eye in PHPP). The contract doc is the deliverable, in the s
 > executable contract), `write_library_b.rb` (payload-driven paste-in), `rehearse_b.py`
 > (byte + arithmetic rehearsal, 4/4).
 
-### Spike L-C — transport and product shape *(▶ NEXT — sketch only; options re-weighted by L-A, seeded by L-B's frozen contract + `write_library_b.rb`)*
+### Spike L-C — the v-0 product scope *(▶ NEXT — reshaped 2026-08-31: Ed chose the shape in the product-shape discussion, so this is now scoping ONE product, not weighing four options)*
 
-Simplest viable is confirmed viable: **PHN → JSON file → a paste-in / menu-item write inside
-SketchUp** — `write_library.rb` is the working seed, any write timing is acceptable (O-7), and
-re-initialise is the only post-step. Options to weigh, not build:
+**The decision (Ed, 2026-08-31): v-0 is "Library Sync" — a small, pull-based SketchUp extension
+that imports PHN assemblies and window types into the open designPH model.** The boundaries were
+decided with it:
 
-- a small extension with a menu item (one step up from the paste-in; no runtime shell — this is
-  one write, not a pipeline);
-- reuse of POC-1's loopback shell to pull from PHN's API live (only if the file hand-off proves
-  annoying in practice);
-- the **headless writer** (pholio route) — still gated on the C-SDK access + licensing blocks,
-  and note the sign-flip L-A makes explicit: a *writer* must SAVE, so POC #2's load-bearing
-  "never save" invariant (and its read-only binding, which cannot resolve `SUModelSaveToFile`
-  by design) does not carry over — a headless write path needs its own binding and its own
-  mutate-on-read reasoning;
-- **the installed-CSV channel** *(new, from O-5)* — a second product surface entirely:
-  machine-level seeding of the user-defined library ("PHN pushes the BLDGTYP standard library to
-  every designPH install"), no model touched; per-install `data/` folders to handle.
+- **PH-Navigator stays a web app and never learns SketchUp exists.** The extension is a
+  *consumer* of the PHN API (read-only, project-scoped token). There is no push channel; PHN
+  never writes model files.
+- **Pull, inside SketchUp, model open** — the only transport ever proven (every L-A/L-B write
+  ran this way). Push-to-closed-file is out of v-0 entirely: unproven (A-2 never ran), gated
+  (the C-SDK access + licensing blocks, plus the writer-must-save sign-flip named below),
+  hazardous (open-model clobber, Dropbox sync conflicts), and it buys no automation while O-7's
+  "re-initialise designPH after import" keeps a human in the loop anyway.
+- **Pholio stays a separate product** (Ed, same discussion). If a headless/file-level writer
+  ever matters it is a pholio-shaped question — note the sign-flip L-A made explicit: a *writer*
+  must SAVE, so POC #2's load-bearing "never save" invariant and its read-only binding (which
+  cannot resolve `SUModelSaveToFile` by design) do not carry over; a headless write path needs
+  its own binding and its own mutate-on-read reasoning. The two products share the frozen
+  contracts and `00_Context/`, never a product surface.
+- **No honeybee inside.** Pure Ruby (native `Marshal`), PHN JSON in, contract-v1 tables out —
+  so **this product has no AGPL exposure**. Its licensing tail is LI-1/LI-2 (designPH licence
+  wording, the PHI conversation), not counsel's AGPL answer.
+- **Windows are types only** (frames + glazings per the frozen contract). Window geometry stays
+  the user's job in SketchUp; no ambition here to mirror honeybee-ph's aperture builder.
+- **The installed-CSV channel is deferred, unscoped** — a different surface entirely
+  (machine-level seeding of the user-defined library, per-install `data/` folders), for a
+  different day.
 
-**Gate:** a recommended v1 shape, one page.
+**The deliverable (the reshaped gate): a v-0 scope document in this folder**, covering at least:
+
+1. **UX** — the menu item, project/token handling, the dry-run report shown *before* the write
+   (slots to be filled, rows to be updated by `phn_id`, refusals named — hard rule 4), and the
+   "re-initialise designPH" post-step as a first-class UI instruction, not a footnote.
+2. **Sync semantics bound to UX** — `phn_id` matching (B-2), fill-next-blank allocation around
+   named gaps, `desc` fallback for pre-column rows, slot-exhaustion behaviour. All already
+   frozen in `CONTRACT_phn-library.md`; the scope doc decides what the user *sees* when each
+   rule fires.
+3. **Transport detail** — file hand-off (PHN "download library" → extension reads the JSON) vs
+   a direct `Net::HTTP` call from Ruby. This is one write, not a pipeline — POC-1's loopback
+   shell is not needed. The scope doc picks one and says why.
+4. **The hardening budget** — everything proven is two models, one machine, designPH 2.2.29
+   stable. v-0 must state its supported designPH range, keep the 3.x refusal by name, and
+   decide behaviour on 2.1.x-generation models (`assemblies_ud`-only; `*Auto` keys). A version
+   sweep is the price of the first non-BLDGTYP user.
+5. **Ship posture** — internal-only first (LI-3); the PHI opener updated (LI-2) before anything
+   reaches an outside user.
+
+**Recorded trajectory (Ed, 2026-08-31) — context the scope doc should not re-litigate:**
+
+- **v-1 candidate:** HBJSON *export* as feature two of the same extension, once the AGPL answer
+  arrives — the POC-1 pipeline is the working seed.
+- **A separate, deferred spike:** HBJSON → a **fresh** `.skp` (never surgery on an existing
+  designPH model) — scoped as [`../04_hbjson-to-skp/`](../04_hbjson-to-skp/.index.md).
+- **The north star is killing PHPP's dual-entry problem.** Today some PHPP inputs arrive via
+  designPH and some by hand, indistinguishably — six months later nobody can tell where to
+  edit. The direction of travel: *all* data flows into the calculator from the model side, and
+  the calculator (PHPP today, OpenPH eventually) becomes a throwaway compute artifact rather
+  than today's mix of calculator *and* information model. The genuinely geometric gaps (ducts,
+  piping, rooms — the hardest things for a certifier to verify from paper) are the long-term
+  case for authoring in SketchUp; the non-geometric gaps are *data* and can ride this same
+  sync channel (under `DesignPHPlus_dict`) whenever a consumer for them exists.
+- **One strategic question is deliberately left open:** whether the SKP or the pholio record is
+  the canonical hand-over artifact for certifiers. That is a decision memo for Ed, not a spike.
+
+**Gate:** the v-0 scope document, reviewed by Ed. *(Supersedes the original gate — "a
+recommended v1 shape, one page" — the recommendation is now made; the sketch became a scope.)*
 
 ## 5. Rules in force
 
