@@ -2,6 +2,7 @@
 name = "dph-translator"
 version = "0.1.0"
 description = "DesignPH-PLUS POC translation core: designPH extraction JSON -> HBJSON + report"
+license = "AGPL-3.0-or-later"
 # Pyodide 0.24.1 is CPython 3.11.3. The venv matches it exactly so that a test passing here is
 # evidence about the runtime, not about the laptop.
 requires-python = "==3.11.*"
