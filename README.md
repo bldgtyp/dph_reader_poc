@@ -63,9 +63,11 @@ designPH, and a model you are licensed to read.
 
 ## Licence and posture
 
-Internal. Never distributed beyond the parties it is shared with. The extension vendors honeybee
-(AGPL-3.0); the licensing question is written up for counsel in
-`planning/01_sketchup-export/feasibility/RESULTS/PHASE-3_licence-question.md`. The reader never parses designPH's `.ppp` export
-and never writes into designPH's data (`AGENTS.md`, hard rules 1 and 2).
+Copyright BLDGTYP, LLC. Licensed under the GNU Affero General Public License v3.0 or later; see
+`LICENSE`, and `LICENSING.md` for what that means for the plugin, which vendors honeybee
+(AGPL-3.0) in its Pyodide payload. The counsel write-up that preceded the decision is at
+`planning/01_sketchup-export/feasibility/RESULTS/PHASE-3_licence-question.md`. Outside
+contributions require the contributor agreement in `CLA.md`. The reader never parses designPH's
+`.ppp` export and never writes into designPH's data (`AGENTS.md`, hard rules 1 and 2).
 
 BLDGTYP, LLC (Ed May, John Mitchell).
